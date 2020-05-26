@@ -6,6 +6,7 @@ import java.util.List;
 import java.util.Map;
 
 import bgl.challenge.exception.UnknownCharacterException;
+import bgl.challenge.models.SubString;
 
 public class DefaultPhoneWordDictionary implements PhoneWordDictionary {
 
@@ -55,10 +56,10 @@ public class DefaultPhoneWordDictionary implements PhoneWordDictionary {
 			}
 
 			if (this.getShortestWordLength() == 0) {
-				// if first word
+				// if it is the first word
 				this.setShortestWordLength(word.length());
 			} else if (word.length() < this.shortestWordLength) {
-				// if new word length shorter
+				// if the new word's length is shorter
 				setShortestWordLength(word.length());
 			}
 		} catch (UnknownCharacterException ex) {
@@ -77,7 +78,7 @@ public class DefaultPhoneWordDictionary implements PhoneWordDictionary {
 	 *            this is the encoded number not the word
 	 * @return
 	 */
-	public boolean contain(String encodedNumber) {
+	public boolean contains(String encodedNumber) {
 		if (dictionary == null) {
 			return false;
 		}
@@ -97,17 +98,68 @@ public class DefaultPhoneWordDictionary implements PhoneWordDictionary {
 		return possibleWords;
 	}
 
-	// List<String> getAllPossibleWordsOfSpecificLength(String originalString, int
-	// wordLength) {
-	// for (int i = 0; i <= originalString.length() - wordLength; i++) {
-	// String subStr = originalString.substring(i, i + wordLength);
-	// if (dictionary.containsKey(key)) {
-	//
-	// }
-	// }
-	//
-	// return null;
-	// }
+	List<String> constructPossibleWords(String originalEncodedString, List<SubString> subStrings) {
+		List<String> possibleWords = new ArrayList<>();
+
+		return possibleWords;
+	}
+
+	List<SubString> findAllPossibleWords(String encodedOriginalString) {
+		List<SubString> result = new ArrayList<>();
+		if (encodedOriginalString.length() < shortestWordLength) {
+			/*
+			 * if the looked up encoded string is shorter than the shortest word in the
+			 * dictionary
+			 */
+			return result;
+		}
+
+		for (int i = shortestWordLength; i <= encodedOriginalString.length(); i++) {
+			List<SubString> subStrings = findAllPossibleWordsWithSpecificLength(encodedOriginalString, i);
+			result.addAll(subStrings);
+		}
+
+		return result;
+	}
+
+	/**
+	 * Find all possible words in the dictionary which are substrings of the
+	 * provided encoded string
+	 * 
+	 * @param encodedOriginalString
+	 *            this is an encoded string not the original word.
+	 * @param wordLength
+	 * @return
+	 */
+
+	List<SubString> findAllPossibleWordsWithSpecificLength(String encodedOriginalString, int wordLength) {
+		List<SubString> result = new ArrayList<>();
+		for (int i = 0; i <= encodedOriginalString.length() - wordLength; i++) {
+			String subStr = encodedOriginalString.substring(i, i + wordLength);
+			/*
+			 * The start index (inclusive) of the substring within the original string
+			 */
+			final int start = i;
+			/*
+			 * The end index (inclusive) of the substring within the original string
+			 */
+			final int end = i + wordLength - 1;
+			if (dictionary.containsKey(subStr)) {
+				// if the substring match any word in the dictionary
+				List<String> words = dictionary.get(subStr);
+				/*
+				 * add all the dictionary words of the corresponding encoded into the returned
+				 * result
+				 */
+				words.stream().forEach(prod -> {
+					SubString subString = new SubString(encodedOriginalString, subStr, start, end);
+					result.add(subString);
+				});
+			}
+		}
+
+		return result;
+	}
 
 	void setShortestWordLength(int length) {
 		this.shortestWordLength = length;
