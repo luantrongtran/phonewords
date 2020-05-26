@@ -17,24 +17,24 @@ public class DefaultPhoneWordDictionaryTest {
 		dictionary = new DefaultPhoneWordDictionary(wordEncoder);
 	}
 	
-//	@Test
-//	public void testGetPossibleWords_GivenANotExactWord_WhenFindAValidNumber_ThenReturnCorrectWord_1() {
-//		//Given
-//		// a 1-word Dictionary
-//		String dictionaryWord = "KItty";
-//		dictionary.addNewWord(dictionaryWord);
-//		
-//		// When
-//		int input = 54889;
-//		List<String> actualWords = dictionary.getPossibleWords(input);
-//		
-//		// Then
-//		String expectedWord = "KITTY-1";
-//		assertThat(actualWords.size()).isEqualTo(1);
-//		String actualWord = actualWords.get(0);
-//		
-//		assertThat(actualWord).isEqualTo(expectedWord);
-//	}
+	@Test
+	public void testGetPossibleWords_GivenANotExactWord_WhenFindAValidNumber_ThenReturnCorrectWord_1() {
+		//Given
+		// a 1-word Dictionary
+		String dictionaryWord = "KItty";
+		dictionary.addNewWord(dictionaryWord);
+		
+		// When
+		String input = "54889";
+		List<String> actualWords = dictionary.getPossibleWords(input);
+		
+		// Then
+		String expectedWord = "KITTY-1";
+		assertThat(actualWords.size()).isEqualTo(1);
+		String actualWord = actualWords.get(0);
+		
+		assertThat(actualWord).isEqualTo(expectedWord);
+	}
 	
 	@Test
 	public void testGetPossibleWords_GivenAExactWord_WhenFindAValidNumber_ThenReturnCorrectWord_1() {
@@ -43,7 +43,7 @@ public class DefaultPhoneWordDictionaryTest {
 		String dictionaryWord = "Hello";
 		dictionary.addNewWord(dictionaryWord);
 		
-		int input = 43556;
+		String input = "43556";
 		
 		// When
 		List<String> actualWords = dictionary.getPossibleWords(input);
@@ -65,7 +65,7 @@ public class DefaultPhoneWordDictionaryTest {
 		dictionary.addNewWord(dictionaryWord);
 		
 		// When
-		int input = 54889;
+		String input = "54889";
 		List<String> actualWords = dictionary.getPossibleWords(input);
 		
 		// Then
@@ -80,7 +80,7 @@ public class DefaultPhoneWordDictionaryTest {
 	public void testAddNewWord_WhenAddingAWord_ThenFoundItInDictionary() {
 		// Given
 		String word = "Hello";
-		int expextedEncodedNumber = 43556;
+		String expextedEncodedNumber = "43556";
 
 		// When
 		boolean isWordAdded = dictionary.addNewWord(word);
@@ -95,7 +95,7 @@ public class DefaultPhoneWordDictionaryTest {
 	public void testAddNewWord_WhenAddingAWord_ThenFoundItInDictionary_2() {
 		// Given
 		String word = "aAaA";
-		int expextedEncodedNumber = 2222;
+		String expextedEncodedNumber = "2222";
 
 		// When
 		boolean isWordAdded = dictionary.addNewWord(word);
@@ -110,10 +110,10 @@ public class DefaultPhoneWordDictionaryTest {
 	public void testAdd2NewWords_WhenAddingAWord_ThenFoundItInDictionary_2() {
 		// Given
 		String dictionaryWord1 = "aAaA";
-		int expectedEncodedNumber1 = 2222;
+		String expectedEncodedNumber1 = "2222";
 		
 		String dictionaryWord2 = "aBc";
-		int expectedEncodedNumber2 = 223;
+		String expectedEncodedNumber2 = "223";
 
 		// When
 		boolean is1stWordAdded = dictionary.addNewWord(dictionaryWord1);

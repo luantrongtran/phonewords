@@ -11,7 +11,10 @@ public class DefaultPhoneWordDictionary implements PhoneWordDictionary {
 
 	WordEncoder wordEncoder;
 
-	Map<Integer, String> dictionary;
+	/**
+	 * Key is the encoded number, value is the corresponding words in dictionary
+	 */
+	Map<String, List<String>> dictionary;
 
 	/**
 	 * A pivotal recording the shortest word length
@@ -35,12 +38,21 @@ public class DefaultPhoneWordDictionary implements PhoneWordDictionary {
 		}
 
 		if (dictionary == null) {
-			dictionary = new HashMap<Integer, String>();
+			dictionary = new HashMap<String, List<String>>();
 		}
 
 		try {
-			int encoded = wordEncoder.encode(word);
-			dictionary.put(encoded, word);
+			// store uppercase
+			word = word.toUpperCase();
+			String encoded = wordEncoder.encode(word) + "";
+			if (!dictionary.containsKey(encoded)) {
+				List<String> words = new ArrayList<>();
+				words.add(word);
+				dictionary.put(encoded, words);
+			} else {
+				List<String> words = dictionary.get(encoded);
+				words.add(word);
+			}
 
 			if (this.getShortestWordLength() == 0) {
 				// if first word
@@ -61,41 +73,41 @@ public class DefaultPhoneWordDictionary implements PhoneWordDictionary {
 	/**
 	 * Checking if a number is in the dictionary
 	 * 
-	 * @param number
+	 * @param encodedNumber
+	 *            this is the encoded number not the word
 	 * @return
 	 */
-	public boolean contain(int number) {
+	public boolean contain(String encodedNumber) {
 		if (dictionary == null) {
 			return false;
 		}
-		return dictionary.containsKey(number);
+		return dictionary.containsKey(encodedNumber);
 	}
 
 	@Override
-	public List<String> getPossibleWords(int number) {
+	public List<String> getPossibleWords(String encodedNumber) {
 		List<String> possibleWords = new ArrayList<>();
 
-		if (dictionary.containsKey(number)) {
-			String word = dictionary.get(number);
+		if (dictionary.containsKey(encodedNumber)) {
+			List<String> words = dictionary.get(encodedNumber);
 			// Capitalize the word
-			word = word.toUpperCase();
-			possibleWords.add(word);
+			return words;
 		}
 
 		return possibleWords;
 	}
 
-//	List<String> recursiveTranslate(int number) {
-//		
-//		
-//		int length = input.length();
-//		
-//		while (length >= shortestWordLength) {
-//			String subStr = input.substring(0, 0 + length);
-//		}
-//
-//		return null;
-//	}
+	// List<String> getAllPossibleWordsOfSpecificLength(String originalString, int
+	// wordLength) {
+	// for (int i = 0; i <= originalString.length() - wordLength; i++) {
+	// String subStr = originalString.substring(i, i + wordLength);
+	// if (dictionary.containsKey(key)) {
+	//
+	// }
+	// }
+	//
+	// return null;
+	// }
 
 	void setShortestWordLength(int length) {
 		this.shortestWordLength = length;
