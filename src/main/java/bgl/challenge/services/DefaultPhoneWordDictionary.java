@@ -10,7 +10,12 @@ import bgl.challenge.models.SubString;
 
 public class DefaultPhoneWordDictionary implements PhoneWordDictionary {
 
+	/**
+	 * For encoding a word.
+	 */
 	WordEncoder wordEncoder;
+
+	SyntaxChecker phonewordSyntaxChecker;
 
 	/**
 	 * Key is the encoded number, value is the corresponding words in dictionary
@@ -22,8 +27,9 @@ public class DefaultPhoneWordDictionary implements PhoneWordDictionary {
 	 */
 	int shortestWordLength = 0;
 
-	public DefaultPhoneWordDictionary(WordEncoder wordEncoder) {
+	public DefaultPhoneWordDictionary(WordEncoder wordEncoder, SyntaxChecker phonewordSyntaxChecker) {
 		this.wordEncoder = wordEncoder;
+		this.phonewordSyntaxChecker = phonewordSyntaxChecker;
 		dictionary = new HashMap<>();
 	}
 
@@ -43,7 +49,7 @@ public class DefaultPhoneWordDictionary implements PhoneWordDictionary {
 		}
 
 		try {
-			// store uppercase
+			// store upper case
 			word = word.toUpperCase();
 			String encoded = wordEncoder.encode(word) + "";
 			if (!dictionary.containsKey(encoded)) {
@@ -98,12 +104,46 @@ public class DefaultPhoneWordDictionary implements PhoneWordDictionary {
 		return possibleWords;
 	}
 
+	/**
+	 * Construct all possible words (not encoded)
+	 * 
+	 * @param originalEncodedString
+	 * @param subStrings
+	 * @return
+	 */
 	List<String> constructPossibleWords(String originalEncodedString, List<SubString> subStrings) {
 		List<String> possibleWords = new ArrayList<>();
+
+		for (int i = 0; i < subStrings.size(); i++) {
+			SubString subString = subStrings.get(i);
+
+			//
+			String encodedString = subString.getValue();
+			List<String> correspondingDictionaryWords = dictionary.get(encodedString);
+			correspondingDictionaryWords.stream().forEach(dicWord -> {
+				String temp = new StringBuilder(" ").append(dicWord).append(" ").toString();
+				String possibleWord = originalEncodedString.replace(subString.getValue(), temp);
+				// Replace spaces with dashes
+				possibleWord = possibleWord.trim().replace(" ", "-");
+
+				// Checking if this is a valid phoneword
+				boolean isValidWord = phonewordSyntaxChecker.isValid(possibleWord);
+				if (isValidWord) {
+					possibleWords.add(possibleWord);
+				}
+			});
+		}
 
 		return possibleWords;
 	}
 
+	/**
+	 * Find all possible encoded string (of the words in the dictionary) which are
+	 * substrings of the provided encoded string
+	 * 
+	 * @param encodedOriginalString
+	 * @return
+	 */
 	List<SubString> findAllPossibleWords(String encodedOriginalString) {
 		List<SubString> result = new ArrayList<>();
 		if (encodedOriginalString.length() < shortestWordLength) {
@@ -123,8 +163,8 @@ public class DefaultPhoneWordDictionary implements PhoneWordDictionary {
 	}
 
 	/**
-	 * Find all possible words in the dictionary which are substrings of the
-	 * provided encoded string
+	 * Find all possible encoded string (of the words in the dictionary) which are
+	 * substrings of the provided encoded string
 	 * 
 	 * @param encodedOriginalString
 	 *            this is an encoded string not the original word.

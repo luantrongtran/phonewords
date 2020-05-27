@@ -2,6 +2,7 @@ package bgl.challenge.services;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import java.util.ArrayList;
 import java.util.List;
 
 import org.junit.jupiter.api.BeforeEach;
@@ -16,27 +17,164 @@ public class DefaultPhoneWordDictionaryTest {
 	@BeforeEach
 	protected void beforeEach() throws Exception {
 		WordEncoder wordEncoder = new PhoneWordEncoder();
-		dictionary = new DefaultPhoneWordDictionary(wordEncoder);
+		SyntaxChecker syntaxChecker = new PhonewordSyntaxChecker();
+		dictionary = new DefaultPhoneWordDictionary(wordEncoder, syntaxChecker);
+	}
+
+	public void testConstructPossibleWords_2Encoding_2PossibleWord() {
+		// Overlapping encoding produces only 1 possible word
+	}
+	
+	@Test
+	public void testConstructPossibleWords_2Encoding_1PossibleWord() {
+		// Given
+		dictionary.addNewWord("STAR");
+		dictionary.addNewWord("WAR");
+
+		String originalEncodedString = "782792771";
+		String expectedPossibleWord = "STAR-WAR-1";
+
+		SubString subString1 = new SubString(originalEncodedString, "7827", 0, 3);
+		SubString subString2 = new SubString(originalEncodedString, "927", 5, 6);
+		List<SubString> subStrings = new ArrayList<>();
+		subStrings.add(subString1);
+		subStrings.add(subString2);
+
+		// when
+		List<String> possibleWords = dictionary.constructPossibleWords(originalEncodedString, subStrings);
+
+		// then
+		int expectedNoOfPossibleWords = 1;
+		assertThat(possibleWords.size()).isEqualTo(expectedNoOfPossibleWords);
 	}
 
 	@Test
-	public void testGetPossibleWords_GivenANotExactWord_WhenFindAValidNumber_ThenReturnCorrectWord_1() {
+	public void testConstructPossibleWords_1Encoding_2PossibleWords_2() {
 		// Given
-		// a 1-word Dictionary
-		String dictionaryWord = "KItty";
-		dictionary.addNewWord(dictionaryWord);
 
-		// When
-		String input = "54889";
-		List<String> actualWords = dictionary.getPossibleWords(input);
+		//// A dictionary having 2 words with the same encoding
+		dictionary.addNewWord("ADGJ");
+		dictionary.addNewWord("BEHK");
+		/// original string
+		String originalEncodedString = "123451";
+		String expectedPossibleWord1 = "1-ADGJ-1";
+		String expectedPossibleWord2 = "1-BEHK-1";
+		/// Substrings - the provided number contain substring of the 2 words in the
+		/// dictionary
+		List<SubString> subStrings = new ArrayList<>();
+		String subStringValue = "2345";
+		int start = 1;
+		int end = 4;
+		SubString subString = new SubString(originalEncodedString, subStringValue, start, end);
+		subStrings.add(subString);
 
-		// Then
-		String expectedWord = "KITTY-1";
-		assertThat(actualWords.size()).isEqualTo(1);
-		String actualWord = actualWords.get(0);
+		// when
+		List<String> possibleWords = dictionary.constructPossibleWords(originalEncodedString, subStrings);
 
-		assertThat(actualWord).isEqualTo(expectedWord);
+		// then
+		int expectedNoOfPossibleWords = 2;
+		assertThat(possibleWords.size()).isEqualTo(expectedNoOfPossibleWords);
+		assertThat(possibleWords.contains(expectedPossibleWord1)).isTrue();
+		assertThat(possibleWords.contains(expectedPossibleWord2)).isTrue();
 	}
+
+	@Test
+	public void testConstructPossibleWords_1Encoding_2PossibleWords_1() {
+		// Given
+
+		//// A dictionary having 2 words with the same encoding
+		dictionary.addNewWord("AAAA");
+		dictionary.addNewWord("BBBB");
+		/// original string
+		String originalEncodedString = "122221";
+		String expectedPossibleWord1 = "1-AAAA-1";
+		String expectedPossibleWord2 = "1-BBBB-1";
+		/// Substrings - the provided number contain substring of the 2 words in the
+		/// dictionary
+		List<SubString> subStrings = new ArrayList<>();
+		String subStringValue = "2222";
+		int start = 1;
+		int end = 4;
+		SubString subString = new SubString(originalEncodedString, subStringValue, start, end);
+		subStrings.add(subString);
+
+		// when
+		List<String> possibleWords = dictionary.constructPossibleWords(originalEncodedString, subStrings);
+
+		// then
+		int expectedNoOfPossibleWords = 2;
+		assertThat(possibleWords.size()).isEqualTo(expectedNoOfPossibleWords);
+		assertThat(possibleWords.contains(expectedPossibleWord1)).isTrue();
+		assertThat(possibleWords.contains(expectedPossibleWord2)).isTrue();
+	}
+
+	@Test
+	public void testConstructPossibleWords_1Encoding_NoPossibleWord_DueToConsecutiveDigits() {
+		// Given
+		dictionary.addNewWord("KITTY");
+		/// original string
+		String originalEncodedString = "1154889";
+		/// Substrings
+		List<SubString> subStrings = new ArrayList<>();
+		String subStringValue = "54889";
+		int start = 0;
+		int end = 4;
+		SubString subString = new SubString(originalEncodedString, subStringValue, start, end);
+		subStrings.add(subString);
+
+		// when
+		List<String> possibleWords = dictionary.constructPossibleWords(originalEncodedString, subStrings);
+
+		// then
+		int expectedNoOfPossibleWords = 0;
+		assertThat(possibleWords.size()).isEqualTo(expectedNoOfPossibleWords);
+	}
+
+	@Test
+	public void testConstructPossibleWords_1Encoding_1PossibleWord_1() {
+		// Given
+		dictionary.addNewWord("KITTY");
+		/// original string
+		String originalEncodedString = "154889";
+		/// Substrings
+		List<SubString> subStrings = new ArrayList<>();
+		String subStringValue = "54889";
+		int start = 0;
+		int end = 4;
+		SubString subString = new SubString(originalEncodedString, subStringValue, start, end);
+		subStrings.add(subString);
+
+		// when
+		List<String> possibleWords = dictionary.constructPossibleWords(originalEncodedString, subStrings);
+
+		// then
+		int expectedNoOfPossibleWords = 1;
+		assertThat(possibleWords.size()).isEqualTo(expectedNoOfPossibleWords);
+		String possibleWord = possibleWords.get(0);
+		Object expectedWord = "1-KITTY";
+		assertThat(possibleWord).isEqualTo(expectedWord);
+	}
+
+	// @Test
+	// public void
+	// testGetPossibleWords_GivenANotExactWord_WhenFindAValidNumber_ThenReturnCorrectWord_1()
+	// {
+	// // Given
+	// // a 1-word Dictionary
+	// String dictionaryWord = "KItty";
+	// dictionary.addNewWord(dictionaryWord);
+	//
+	// // When
+	// String input = "548891";
+	// List<String> actualWords = dictionary.getPossibleWords(input);
+	//
+	// // Then
+	// String expectedWord = "KITTY-1";
+	// assertThat(actualWords.size()).isEqualTo(1);
+	// String actualWord = actualWords.get(0);
+	//
+	// assertThat(actualWord).isEqualTo(expectedWord);
+	// }
 
 	@Test
 	public void testFindAllPossibleWords() {
@@ -55,10 +193,10 @@ public class DefaultPhoneWordDictionaryTest {
 		// then
 		int expectedNoOfSubStrings = 2;
 		assertThat(subStrings.size()).isEqualTo(expectedNoOfSubStrings);
-		
+
 		SubString first = subStrings.get(0);
 		assertThat(first.getValue()).isEqualTo(encodedFirstDictionaryWord);
-		
+
 		SubString second = subStrings.get(1);
 		assertThat(second.getValue()).isEqualTo(encodedSecondDictionaryWord);
 	}
