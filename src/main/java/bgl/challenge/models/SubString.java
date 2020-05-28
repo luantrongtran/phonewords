@@ -32,6 +32,20 @@ public class SubString {
 		this.end = end;
 	}
 
+	public boolean conflictWith(SubString subString) {
+		int start1 = this.start;
+		int end1 = this.end;
+
+		int start2 = subString.start;
+		int end2 = subString.end;
+
+		if ((start1 <= end2) && (end1 >= start2)) {
+			return true;
+		}
+
+		return false;
+	}
+
 	public String getOriginalString() {
 		return originalString;
 	}
