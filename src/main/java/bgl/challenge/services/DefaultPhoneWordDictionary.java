@@ -1,9 +1,15 @@
 package bgl.challenge.services;
 
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Comparator;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
+import java.util.TreeSet;
+import java.util.stream.Collectors;
 
 import bgl.challenge.exception.UnknownCharacterException;
 import bgl.challenge.models.SubString;
@@ -92,14 +98,17 @@ public class DefaultPhoneWordDictionary implements PhoneWordDictionary {
 	}
 
 	@Override
-	public List<String> getPossibleWords(String encodedNumber) {
-		List<String> possibleWords = new ArrayList<>();
+	public List<String> findPhonewords(String encodedNumber) {
+		List<SubString> subStrings = findAllPossibleWords(encodedNumber);
+		List<List<SubString>> groupsOfPossibleWords = groupPossibleEncodedString(subStrings);
 
-		if (dictionary.containsKey(encodedNumber)) {
-			List<String> words = dictionary.get(encodedNumber);
-			// Capitalize the word
-			return words;
-		}
+		List<String> possibleWords = groupsOfPossibleWords.stream().map(lstSubStrings -> {
+			List<String> possibleWordsInGroup = constructPossibleWords(new String(encodedNumber), lstSubStrings);
+			return possibleWordsInGroup;
+		}).reduce(new ArrayList<>(), (partial, lstWords) -> {
+			partial.addAll(lstWords);
+			return partial;
+		});
 
 		return possibleWords;
 	}
@@ -114,27 +123,170 @@ public class DefaultPhoneWordDictionary implements PhoneWordDictionary {
 	List<String> constructPossibleWords(String originalEncodedString, List<SubString> subStrings) {
 		List<String> possibleWords = new ArrayList<>();
 
-		for (int i = 0; i < subStrings.size(); i++) {
-			SubString subString = subStrings.get(i);
+		List<List<SubString>> groupOfPossibleWords = groupPossibleEncodedString(subStrings);
 
-			//
-			String encodedString = subString.getValue();
-			List<String> correspondingDictionaryWords = dictionary.get(encodedString);
-			correspondingDictionaryWords.stream().forEach(dicWord -> {
-				String temp = new StringBuilder(" ").append(dicWord).append(" ").toString();
-				String possibleWord = originalEncodedString.replace(subString.getValue(), temp);
-				// Replace spaces with dashes
-				possibleWord = possibleWord.trim().replace(" ", "-");
+		groupOfPossibleWords.stream().forEach(lstSubStrings -> {
+			// calculate the number of possible words
+			int noOfPossibleWords = lstSubStrings.stream().map(subString -> {
+				String encodedString = subString.getValue();
+				List<String> dictionaryWords = dictionary.get(encodedString);
+				return dictionaryWords.size();
+			}).reduce(1, (total, noOfWordsPerEncoding) -> {
+				total *= noOfWordsPerEncoding;
+				return total;
+			});
 
-				// Checking if this is a valid phoneword
-				boolean isValidWord = phonewordSyntaxChecker.isValid(possibleWord);
-				if (isValidWord) {
-					possibleWords.add(possibleWord);
+			// Create a list containing possible word and
+			final List<String> possibleWordsOfCurrentGroup = new ArrayList<>(noOfPossibleWords);
+			for (int i = 0; i < noOfPossibleWords; i++) {
+				// initialize all the value to be the originalEncodedString
+				possibleWordsOfCurrentGroup.add(new String(originalEncodedString));
+			}
+
+			lstSubStrings.stream().forEach(subString -> {
+				String encodedString = subString.getValue();
+				List<String> dictionaryWords = dictionary.get(encodedString);
+				for (int i = 0; i < possibleWordsOfCurrentGroup.size();) {
+					for (int j = 0; j < dictionaryWords.size(); j++, i++) {
+						String correspondingWord = dictionaryWords.get(j);
+						String newStr = this.replaceSubString(possibleWordsOfCurrentGroup.get(i), subString,
+								correspondingWord);
+						possibleWordsOfCurrentGroup.set(i, newStr);
+					}
 				}
 			});
-		}
+
+			/*
+			 * Format the word to meet requirements - e.g. dashes between words; or no 2
+			 * consecutive digites
+			 */
+			possibleWordsOfCurrentGroup.stream().filter(phonewordSyntaxChecker::isValid).forEach(word -> {
+				Set<Integer> dashIndexes = new TreeSet<>(new Comparator<Integer>() {
+					@Override
+					public int compare(Integer o1, Integer o2) {
+						return -o1.compareTo(o2);
+					}
+				});
+
+				lstSubStrings.forEach(subString -> {
+					dashIndexes.add(subString.getStart());
+					dashIndexes.add(subString.getEnd());
+				});
+
+				Iterator<Integer> iter = dashIndexes.iterator();
+				boolean rightDash = true;
+				while (iter.hasNext()) {
+					int dashIndex = iter.next();
+					if (dashIndex == word.length() - 1) {
+						rightDash = !rightDash;
+						continue;
+					} else if (dashIndex == 0) {
+						rightDash = !rightDash;
+						continue;
+					}
+
+					if (rightDash) {
+						String temp = word.substring(0, dashIndex+1) + "-" + word.substring(dashIndex + 1);
+						word = temp;
+					} else {
+						String temp = word.substring(0, dashIndex) + "-" + word.substring(dashIndex);
+						word = temp;
+					}
+					 
+					rightDash = !rightDash;
+				}
+
+				// The word may contain 2 consecutive dashes
+				word = word.replace("--", "-");
+				possibleWords.add(word);
+			});
+		});
 
 		return possibleWords;
+	}
+
+	/**
+	 * Given a list of subStrings which are encoded strings, the method will group
+	 * subStrings which are not overlapped each other.
+	 * 
+	 * The main point of this method is it lists all valid groups of substrings (and
+	 * unnecessary strings which are not a concerned for now)
+	 * 
+	 * @param originalEncoded
+	 * @param subStrings
+	 * @return
+	 */
+	List<List<SubString>> groupPossibleEncodedString(List<SubString> subStrings) {
+		final List<List<SubString>> patterns = new ArrayList<>();
+
+		subStrings.forEach(subString -> {
+			patterns.add(Arrays.asList(subString));
+		});
+
+		for (int noOfSubStrings = 2; noOfSubStrings <= subStrings.size(); noOfSubStrings++) {
+			final int constNoOfSubStrings = noOfSubStrings;
+			for (int i = 0; i < subStrings.size(); i++) {
+				SubString subString = subStrings.get(i);
+				for (int j = i + 1; j < subStrings.size(); j++) {
+					List<SubString> group = new ArrayList<>();
+					group.add(subString);
+					for (int k = 0; (k < constNoOfSubStrings && (j + k) < subStrings.size()); k++) {
+						SubString nextSubString = subStrings.get(j + k);
+						if (group.size() == constNoOfSubStrings) {
+							break;
+						}
+						if (!subString.equals(nextSubString)) {
+							group.add(nextSubString);
+						}
+					}
+
+					if (group.size() == constNoOfSubStrings) {
+						patterns.add(group);
+					}
+				}
+			}
+		}
+
+		/*
+		 * Filter out patterns containing conflicting sub strings.
+		 */
+		List<List<SubString>> validPatterns = patterns.stream().filter(pattern -> {
+			boolean isValidPattern = !pattern.stream().map(subString -> {
+				boolean conflictEmerged = pattern.stream().map(otherSubString -> {
+					if (subString.equals(otherSubString)) {
+						// the same substring
+						return false;
+					}
+					return subString.conflictWith(otherSubString);
+				}).reduce(false, (conflictOccurredWithSubString, currentConflict) -> {
+					return conflictOccurredWithSubString | currentConflict;
+				});
+				return conflictEmerged;
+			}).reduce(false, (anyConflict, conf) -> {
+				return anyConflict | conf;
+			});
+			return isValidPattern;
+		}).collect(Collectors.toList());
+
+		/*
+		 * validPatterns may contain duplicate pairs which have same substrings but
+		 * different order.
+		 */
+		for (int i = 0; i < validPatterns.size() - 1; i++) {
+			List<SubString> pattern = validPatterns.get(i);
+			for (int j = i + 1; j < validPatterns.size(); j++) {
+				List<SubString> nextPattern = validPatterns.get(j);
+				if (pattern.size() == nextPattern.size()) {
+					if (pattern.containsAll(nextPattern)) {
+						// duplicated
+						validPatterns.remove(j);
+						j--;
+					}
+				}
+			}
+		}
+
+		return validPatterns;
 	}
 
 	/**
@@ -191,13 +343,17 @@ public class DefaultPhoneWordDictionary implements PhoneWordDictionary {
 				 * add all the dictionary words of the corresponding encoded into the returned
 				 * result
 				 */
-				words.stream().forEach(prod -> {
-					SubString subString = new SubString(encodedOriginalString, subStr, start, end);
-					result.add(subString);
-				});
+				SubString subString = new SubString(encodedOriginalString, subStr, start, end);
+				result.add(subString);
 			}
 		}
 
+		return result;
+	}
+
+	String replaceSubString(String originalEncodedString, SubString subString, String newString) {
+		String result = originalEncodedString.substring(0, subString.getStart()) + newString
+				+ originalEncodedString.substring(subString.getEnd() + 1);
 		return result;
 	}
 
