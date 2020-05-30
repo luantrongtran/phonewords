@@ -18,6 +18,7 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import bgl.challenge.phoneword.exception.UnknownCharacterException;
+import bgl.challenge.phoneword.models.Pattern;
 import bgl.challenge.phoneword.models.SubString;
 
 public class DefaultPhoneWordDictionary implements PhoneWordDictionary {
@@ -45,6 +46,11 @@ public class DefaultPhoneWordDictionary implements PhoneWordDictionary {
 		dictionary = new HashMap<>();
 	}
 
+	/**
+	 * Factory pattern
+	 * 
+	 * @return
+	 */
 	public static DefaultPhoneWordDictionary getInstance() {
 		WordEncoder wordEncoder = new PhoneWordEncoder();
 		SyntaxChecker phonewordSyntaxChecker = new PhonewordSyntaxChecker();
@@ -68,7 +74,7 @@ public class DefaultPhoneWordDictionary implements PhoneWordDictionary {
 		}
 
 		try {
-			// store upper case
+			// convert to upper case
 			word = word.toUpperCase();
 			String encoded = wordEncoder.encode(word) + "";
 			if (!dictionary.containsKey(encoded)) {
@@ -110,15 +116,21 @@ public class DefaultPhoneWordDictionary implements PhoneWordDictionary {
 		return dictionary.containsKey(encodedNumber);
 	}
 
+	/**
+	 * Find all possible phonewords of the given number
+	 */
 	@Override
-	public List<String> findPhonewords(String encodedNumber) {
-		List<SubString> subStrings = findAllPossibleWords(encodedNumber);
-		List<List<SubString>> groupsOfPossibleWords = groupPossibleEncodedString(subStrings);
+	public List<String> findPhonewords(String phoneNumber) {
+		List<SubString> subStrings = findAllPossibleSubStrings(phoneNumber);
 
-		List<String> possibleWords = groupsOfPossibleWords.stream().map(lstSubStrings -> {
-			List<String> possibleWordsInGroup = constructPossibleWords(new String(encodedNumber), lstSubStrings);
-			return possibleWordsInGroup;
+		List<Pattern> patterns = findAllValidPatterns(subStrings);
+
+		List<String> possibleWords = patterns.stream().map(pattern -> {
+			// for each pattern construct possible words
+			List<String> possibleWordsPerPattern = constructPossibleWordsPerPattern(new String(phoneNumber), pattern);
+			return possibleWordsPerPattern;
 		}).reduce(new ArrayList<>(), (partial, lstWords) -> {
+			// add all possible words per pattern into a single list
 			partial.addAll(lstWords);
 			return partial;
 		});
@@ -127,92 +139,88 @@ public class DefaultPhoneWordDictionary implements PhoneWordDictionary {
 	}
 
 	/**
-	 * Construct all possible words (not encoded)
+	 * Construct all possible words
 	 * 
 	 * @param originalEncodedString
 	 * @param subStrings
 	 * @return
 	 */
-	List<String> constructPossibleWords(String originalEncodedString, List<SubString> subStrings) {
+	List<String> constructPossibleWordsPerPattern(String originalEncodedString, Pattern pattern) {
 		List<String> possibleWords = new ArrayList<>();
 
-		List<List<SubString>> groupOfPossibleWords = groupPossibleEncodedString(subStrings);
+		// calculate the number of possible words
+		int noOfPossibleWords = pattern.stream().map(subString -> {
+			String encodedString = subString.getValue();
+			List<String> dictionaryWords = dictionary.get(encodedString);
+			return dictionaryWords.size();
+		}).reduce(1, (total, noOfWordsPerEncoding) -> {
+			total *= noOfWordsPerEncoding;
+			return total;
+		});
 
-		groupOfPossibleWords.stream().forEach(lstSubStrings -> {
-			// calculate the number of possible words
-			int noOfPossibleWords = lstSubStrings.stream().map(subString -> {
-				String encodedString = subString.getValue();
-				List<String> dictionaryWords = dictionary.get(encodedString);
-				return dictionaryWords.size();
-			}).reduce(1, (total, noOfWordsPerEncoding) -> {
-				total *= noOfWordsPerEncoding;
-				return total;
+		// Create a list containing possible word and
+		final List<String> possibleWordsOfCurrentGroup = new ArrayList<>(noOfPossibleWords);
+		for (int i = 0; i < noOfPossibleWords; i++) {
+			// initialize all the value to be the originalEncodedString
+			possibleWordsOfCurrentGroup.add(new String(originalEncodedString));
+		}
+
+		pattern.stream().forEach(subString -> {
+			String encodedString = subString.getValue();
+			List<String> dictionaryWords = dictionary.get(encodedString);
+			for (int i = 0; i < possibleWordsOfCurrentGroup.size();) {
+				for (int j = 0; j < dictionaryWords.size(); j++, i++) {
+					String correspondingWord = dictionaryWords.get(j);
+					String newStr = this.replaceSubString(possibleWordsOfCurrentGroup.get(i), subString,
+							correspondingWord);
+					possibleWordsOfCurrentGroup.set(i, newStr);
+				}
+			}
+		});
+
+		/*
+		 * Format the word to meet requirements - e.g. dashes between words; or no 2
+		 * consecutive digites
+		 */
+		possibleWordsOfCurrentGroup.stream().filter(phonewordSyntaxChecker::isValid).forEach(word -> {
+			Set<Integer> dashIndexes = new TreeSet<>(new Comparator<Integer>() {
+				@Override
+				public int compare(Integer o1, Integer o2) {
+					return -o1.compareTo(o2);
+				}
 			});
 
-			// Create a list containing possible word and
-			final List<String> possibleWordsOfCurrentGroup = new ArrayList<>(noOfPossibleWords);
-			for (int i = 0; i < noOfPossibleWords; i++) {
-				// initialize all the value to be the originalEncodedString
-				possibleWordsOfCurrentGroup.add(new String(originalEncodedString));
+			pattern.stream().forEach(subString -> {
+				dashIndexes.add(subString.getStart());
+				dashIndexes.add(subString.getEnd());
+			});
+
+			Iterator<Integer> iter = dashIndexes.iterator();
+			boolean rightDash = true;
+			while (iter.hasNext()) {
+				int dashIndex = iter.next();
+				if (dashIndex == word.length() - 1) {
+					rightDash = !rightDash;
+					continue;
+				} else if (dashIndex == 0) {
+					rightDash = !rightDash;
+					continue;
+				}
+
+				if (rightDash) {
+					String temp = word.substring(0, dashIndex + 1) + "-" + word.substring(dashIndex + 1);
+					word = temp;
+				} else {
+					String temp = word.substring(0, dashIndex) + "-" + word.substring(dashIndex);
+					word = temp;
+				}
+
+				rightDash = !rightDash;
 			}
 
-			lstSubStrings.stream().forEach(subString -> {
-				String encodedString = subString.getValue();
-				List<String> dictionaryWords = dictionary.get(encodedString);
-				for (int i = 0; i < possibleWordsOfCurrentGroup.size();) {
-					for (int j = 0; j < dictionaryWords.size(); j++, i++) {
-						String correspondingWord = dictionaryWords.get(j);
-						String newStr = this.replaceSubString(possibleWordsOfCurrentGroup.get(i), subString,
-								correspondingWord);
-						possibleWordsOfCurrentGroup.set(i, newStr);
-					}
-				}
-			});
-
-			/*
-			 * Format the word to meet requirements - e.g. dashes between words; or no 2
-			 * consecutive digites
-			 */
-			possibleWordsOfCurrentGroup.stream().filter(phonewordSyntaxChecker::isValid).forEach(word -> {
-				Set<Integer> dashIndexes = new TreeSet<>(new Comparator<Integer>() {
-					@Override
-					public int compare(Integer o1, Integer o2) {
-						return -o1.compareTo(o2);
-					}
-				});
-
-				lstSubStrings.forEach(subString -> {
-					dashIndexes.add(subString.getStart());
-					dashIndexes.add(subString.getEnd());
-				});
-
-				Iterator<Integer> iter = dashIndexes.iterator();
-				boolean rightDash = true;
-				while (iter.hasNext()) {
-					int dashIndex = iter.next();
-					if (dashIndex == word.length() - 1) {
-						rightDash = !rightDash;
-						continue;
-					} else if (dashIndex == 0) {
-						rightDash = !rightDash;
-						continue;
-					}
-
-					if (rightDash) {
-						String temp = word.substring(0, dashIndex + 1) + "-" + word.substring(dashIndex + 1);
-						word = temp;
-					} else {
-						String temp = word.substring(0, dashIndex) + "-" + word.substring(dashIndex);
-						word = temp;
-					}
-
-					rightDash = !rightDash;
-				}
-
-				// The word may contain 2 consecutive dashes
-				word = word.replace("--", "-");
-				possibleWords.add(word);
-			});
+			// The word may contain 2 consecutive dashes
+			word = word.replace("--", "-");
+			possibleWords.add(word);
 		});
 
 		return possibleWords;
@@ -229,32 +237,40 @@ public class DefaultPhoneWordDictionary implements PhoneWordDictionary {
 	 * @param subStrings
 	 * @return
 	 */
-	List<List<SubString>> groupPossibleEncodedString(List<SubString> subStrings) {
-		final List<List<SubString>> patterns = new ArrayList<>();
+	List<Pattern> findAllValidPatterns(List<SubString> subStrings) {
+		final List<Pattern> patterns = new ArrayList<>();
 
+		/**
+		 * Patterns which contains only 1 substring
+		 */
 		subStrings.forEach(subString -> {
-			patterns.add(Arrays.asList(subString));
+			Pattern p = new Pattern(Arrays.asList(subString));
+			patterns.add(p);
 		});
 
+		/**
+		 * Patterns which contains > 1 substring
+		 */
 		for (int noOfSubStrings = 2; noOfSubStrings <= subStrings.size(); noOfSubStrings++) {
 			final int constNoOfSubStrings = noOfSubStrings;
 			for (int i = 0; i < subStrings.size(); i++) {
 				SubString subString = subStrings.get(i);
 				for (int j = i + 1; j < subStrings.size(); j++) {
-					List<SubString> group = new ArrayList<>();
-					group.add(subString);
+					List<SubString> groupOfSubStrings = new ArrayList<>();
+					groupOfSubStrings.add(subString);
 					for (int k = 0; (k < constNoOfSubStrings && (j + k) < subStrings.size()); k++) {
 						SubString nextSubString = subStrings.get(j + k);
-						if (group.size() == constNoOfSubStrings) {
+						if (groupOfSubStrings.size() == constNoOfSubStrings) {
 							break;
 						}
 						if (!subString.equals(nextSubString)) {
-							group.add(nextSubString);
+							groupOfSubStrings.add(nextSubString);
 						}
 					}
 
-					if (group.size() == constNoOfSubStrings) {
-						patterns.add(group);
+					if (groupOfSubStrings.size() == constNoOfSubStrings) {
+						Pattern p = new Pattern(groupOfSubStrings);
+						patterns.add(p);
 					}
 				}
 			}
@@ -263,7 +279,7 @@ public class DefaultPhoneWordDictionary implements PhoneWordDictionary {
 		/*
 		 * Filter out patterns containing conflicting sub strings.
 		 */
-		List<List<SubString>> validPatterns = patterns.stream().filter(pattern -> {
+		List<Pattern> validPatterns = patterns.stream().filter(pattern -> {
 			boolean isValidPattern = !pattern.stream().map(subString -> {
 				boolean conflictEmerged = pattern.stream().map(otherSubString -> {
 					if (subString.equals(otherSubString)) {
@@ -282,19 +298,17 @@ public class DefaultPhoneWordDictionary implements PhoneWordDictionary {
 		}).collect(Collectors.toList());
 
 		/*
-		 * validPatterns may contain duplicate pairs which have same substrings but
+		 * validPatterns may contain duplicated patterns which have same substrings but
 		 * different order.
 		 */
 		for (int i = 0; i < validPatterns.size() - 1; i++) {
-			List<SubString> pattern = validPatterns.get(i);
+			Pattern pattern = validPatterns.get(i);
 			for (int j = i + 1; j < validPatterns.size(); j++) {
-				List<SubString> nextPattern = validPatterns.get(j);
-				if (pattern.size() == nextPattern.size()) {
-					if (pattern.containsAll(nextPattern)) {
-						// duplicated
-						validPatterns.remove(j);
-						j--;
-					}
+				Pattern nextPattern = validPatterns.get(j);
+				if (pattern.equals(nextPattern)) {
+					// remove duplicated
+					validPatterns.remove(j);
+					j--;
 				}
 			}
 		}
@@ -303,15 +317,15 @@ public class DefaultPhoneWordDictionary implements PhoneWordDictionary {
 	}
 
 	/**
-	 * Find all possible encoded string (of the words in the dictionary) which are
-	 * substrings of the provided encoded string
+	 * Find all possible numbers which are substrings of the originalPhoneNumber,
+	 * and exist in the Dictionary.
 	 * 
-	 * @param encodedOriginalString
+	 * @param originalPhoneNumber
 	 * @return
 	 */
-	List<SubString> findAllPossibleWords(String encodedOriginalString) {
+	List<SubString> findAllPossibleSubStrings(String originalPhoneNumber) {
 		List<SubString> result = new ArrayList<>();
-		if (encodedOriginalString.length() < shortestWordLength) {
+		if (originalPhoneNumber.length() < shortestWordLength) {
 			/*
 			 * if the looked up encoded string is shorter than the shortest word in the
 			 * dictionary
@@ -319,8 +333,8 @@ public class DefaultPhoneWordDictionary implements PhoneWordDictionary {
 			return result;
 		}
 
-		for (int i = shortestWordLength; i <= encodedOriginalString.length(); i++) {
-			List<SubString> subStrings = findAllPossibleWordsWithSpecificLength(encodedOriginalString, i);
+		for (int i = shortestWordLength; i <= originalPhoneNumber.length(); i++) {
+			List<SubString> subStrings = findAllPossibleSubStringsWithSpecificLength(originalPhoneNumber, i);
 			result.addAll(subStrings);
 		}
 
@@ -328,19 +342,19 @@ public class DefaultPhoneWordDictionary implements PhoneWordDictionary {
 	}
 
 	/**
-	 * Find all possible encoded string (of the words in the dictionary) which are
-	 * substrings of the provided encoded string
+	 * Find all possible fixed-length numbers which are substrings of the
+	 * originalPhoneNumber, and exist in the Dictionary.
 	 * 
-	 * @param encodedOriginalString
+	 * @param originalPhoneNumber
 	 *            this is an encoded string not the original word.
 	 * @param wordLength
 	 * @return
 	 */
 
-	List<SubString> findAllPossibleWordsWithSpecificLength(String encodedOriginalString, int wordLength) {
+	List<SubString> findAllPossibleSubStringsWithSpecificLength(String originalPhoneNumber, int wordLength) {
 		List<SubString> result = new ArrayList<>();
-		for (int i = 0; i <= encodedOriginalString.length() - wordLength; i++) {
-			String subStr = encodedOriginalString.substring(i, i + wordLength);
+		for (int i = 0; i <= originalPhoneNumber.length() - wordLength; i++) {
+			String subStr = originalPhoneNumber.substring(i, i + wordLength);
 			/*
 			 * The start index (inclusive) of the substring within the original string
 			 */
@@ -356,7 +370,7 @@ public class DefaultPhoneWordDictionary implements PhoneWordDictionary {
 				 * add all the dictionary words of the corresponding encoded into the returned
 				 * result
 				 */
-				SubString subString = new SubString(encodedOriginalString, subStr, start, end);
+				SubString subString = new SubString(originalPhoneNumber, subStr, start, end);
 				result.add(subString);
 			}
 		}
@@ -364,20 +378,24 @@ public class DefaultPhoneWordDictionary implements PhoneWordDictionary {
 		return result;
 	}
 
-	String replaceSubString(String originalEncodedString, SubString subString, String newString) {
-		String result = originalEncodedString.substring(0, subString.getStart()) + newString
-				+ originalEncodedString.substring(subString.getEnd() + 1);
+	/**
+	 * This is to modify the original number by replacing its substring with new
+	 * string
+	 * 
+	 * @param originalPhoneNumber
+	 * @param subString
+	 * @param newString
+	 * @return
+	 */
+	String replaceSubString(String originalPhoneNumber, SubString subString, String newString) {
+		String result = originalPhoneNumber.substring(0, subString.getStart()) + newString
+				+ originalPhoneNumber.substring(subString.getEnd() + 1);
 		return result;
 	}
 
-	void setShortestWordLength(int length) {
-		this.shortestWordLength = length;
-	}
-
-	public int getShortestWordLength() {
-		return this.shortestWordLength;
-	}
-
+	/**
+	 * Import all words in a text file into the dictionary
+	 */
 	@Override
 	public void importFromFile(File f) throws IOException {
 		if (!f.exists()) {
@@ -389,5 +407,13 @@ public class DefaultPhoneWordDictionary implements PhoneWordDictionary {
 		try (Stream<String> lines = Files.lines(Paths.get(f.getAbsoluteFile().toURI()))) {
 			lines.forEach(this::addNewWord);
 		}
+	}
+
+	void setShortestWordLength(int length) {
+		this.shortestWordLength = length;
+	}
+
+	public int getShortestWordLength() {
+		return this.shortestWordLength;
 	}
 }

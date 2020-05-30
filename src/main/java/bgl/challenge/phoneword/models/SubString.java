@@ -1,5 +1,11 @@
 package bgl.challenge.phoneword.models;
 
+/**
+ * Data structure saving info of a sub string
+ * 
+ * @author luant
+ *
+ */
 public class SubString {
 	/**
 	 * The original String
@@ -12,12 +18,12 @@ public class SubString {
 	private String value;
 
 	/**
-	 * The beginning index of the substring in the original string. Inclusive
+	 * The beginning index of the substring in the original string. Inclusive.
 	 */
 	private int start;
 
 	/**
-	 * The last index of the substring in the original string
+	 * The last index of the substring in the original string. Inclusive.
 	 */
 	private int end;
 

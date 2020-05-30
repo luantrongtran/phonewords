@@ -16,6 +16,7 @@ public class PhonewordConsoleApplication implements PhonewordApplication {
 
 	public PhonewordConsoleApplication() {
 		commandParser = DefaultCommandLineParser.getInstance();
+		phoneWordDictionary = DefaultPhoneWordDictionary.getInstance();
 	}
 
 	@Override
@@ -36,12 +37,13 @@ public class PhonewordConsoleApplication implements PhonewordApplication {
 		/// Get all the numbers
 		List<String> lstNumbers = Files.readAllLines(Paths.get(commandInfo.getInputFileName()));
 		lstNumbers.parallelStream().forEach(number -> {
-			phoneWordDictionary.findPhonewords(number).stream().forEach(System.out::println);
+			List<String> phonewords = phoneWordDictionary.findPhonewords(number);
+			// print
+			phonewords.stream().forEach(System.out::println);
 		});
 	}
 
 	private void loadDictionaryFromFile(String dictionaryFileName) throws IOException {
-		phoneWordDictionary = DefaultPhoneWordDictionary.getInstance();
 		File f = new File(dictionaryFileName);
 		phoneWordDictionary.importFromFile(f);
 	}
