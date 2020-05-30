@@ -1,6 +1,6 @@
-package bgl.challenge;
+package bgl.challenge.phoneword.consoleapp;
 
-import bgl.challenge.exception.ArgumentMissingException;
+import bgl.challenge.phoneword.exception.ArgumentMissingException;
 
 public class DefaultCommandLineParser implements CommandLineParser {
 

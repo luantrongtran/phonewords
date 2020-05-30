@@ -1,10 +1,12 @@
-package bgl.challenge;
+package bgl.challenge.phoneword.consoleapp;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.*;
 
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
+
+import bgl.challenge.phoneword.consoleapp.CommandLineInfo;
 
 public class CommandLineInfoTest {
 

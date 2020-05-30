@@ -1,4 +1,4 @@
-package bgl.challenge.services;
+package bgl.challenge.phoneword.services;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -8,7 +8,12 @@ import java.util.List;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
-import bgl.challenge.models.SubString;
+import bgl.challenge.phoneword.models.SubString;
+import bgl.challenge.phoneword.services.DefaultPhoneWordDictionary;
+import bgl.challenge.phoneword.services.PhoneWordEncoder;
+import bgl.challenge.phoneword.services.PhonewordSyntaxChecker;
+import bgl.challenge.phoneword.services.SyntaxChecker;
+import bgl.challenge.phoneword.services.WordEncoder;
 
 public class DefaultPhoneWordDictionaryTest {
 

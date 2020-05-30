@@ -1,4 +1,4 @@
-package bgl.challenge.models;
+package bgl.challenge.phoneword.models;
 
 public class Word {
 	private String value;

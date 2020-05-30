@@ -1,4 +1,4 @@
-package bgl.challenge;
+package bgl.challenge.phoneword.consoleapp;
 
 public interface CommandLineParser {
 	/**

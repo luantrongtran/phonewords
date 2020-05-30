@@ -1,4 +1,4 @@
-package bgl.challenge.services;
+package bgl.challenge.phoneword.services;
 
 import java.util.List;
 

@@ -1,9 +1,11 @@
-package bgl.challenge.models;
+package bgl.challenge.phoneword.models;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+
+import bgl.challenge.phoneword.models.SubString;
 
 public class SubStringTest {
 

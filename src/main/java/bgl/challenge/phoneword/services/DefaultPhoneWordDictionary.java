@@ -1,4 +1,4 @@
-package bgl.challenge.services;
+package bgl.challenge.phoneword.services;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -11,8 +11,8 @@ import java.util.Set;
 import java.util.TreeSet;
 import java.util.stream.Collectors;
 
-import bgl.challenge.exception.UnknownCharacterException;
-import bgl.challenge.models.SubString;
+import bgl.challenge.phoneword.exception.UnknownCharacterException;
+import bgl.challenge.phoneword.models.SubString;
 
 public class DefaultPhoneWordDictionary implements PhoneWordDictionary {
 

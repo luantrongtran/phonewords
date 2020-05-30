@@ -1,9 +1,9 @@
-package bgl.challenge.services;
+package bgl.challenge.phoneword.services;
 
 import java.util.HashMap;
 import java.util.Map;
 
-import bgl.challenge.exception.UnknownCharacterException;
+import bgl.challenge.phoneword.exception.UnknownCharacterException;
 
 public class PhoneWordEncoder implements WordEncoder {
 

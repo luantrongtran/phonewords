@@ -1,4 +1,4 @@
-package bgl.challenge;
+package bgl.challenge.phoneword.consoleapp;
 
 /**
  * This is to save command line details

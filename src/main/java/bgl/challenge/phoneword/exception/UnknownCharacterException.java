@@ -1,4 +1,4 @@
-package bgl.challenge.exception;
+package bgl.challenge.phoneword.exception;
 
 public class UnknownCharacterException extends RuntimeException {
 	public UnknownCharacterException() {
