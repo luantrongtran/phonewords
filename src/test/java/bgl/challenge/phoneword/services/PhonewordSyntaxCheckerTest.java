@@ -2,11 +2,8 @@ package bgl.challenge.phoneword.services;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-
-import bgl.challenge.phoneword.services.PhonewordSyntaxChecker;
 
 public class PhonewordSyntaxCheckerTest {
 

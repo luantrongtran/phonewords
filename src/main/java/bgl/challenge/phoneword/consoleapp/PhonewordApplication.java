@@ -1,11 +1,9 @@
 package bgl.challenge.phoneword.consoleapp;
 
-public class PhonewordApplication {
-	public PhonewordApplication() {
+import java.io.IOException;
 
-	}
+import bgl.challenge.phoneword.exception.ArgumentMissingException;
 
-	public void run(String[] commandLineArgs) {
-
-	}
+public interface PhonewordApplication {
+	public void run(String[] commandLineArgs) throws ArgumentMissingException, IOException;
 }

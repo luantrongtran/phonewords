@@ -1,5 +1,10 @@
 package bgl.challenge.phoneword.services;
 
+import java.io.File;
+import java.io.FileNotFoundException;
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Comparator;
@@ -10,6 +15,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.TreeSet;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import bgl.challenge.phoneword.exception.UnknownCharacterException;
 import bgl.challenge.phoneword.models.SubString;
@@ -37,6 +43,13 @@ public class DefaultPhoneWordDictionary implements PhoneWordDictionary {
 		this.wordEncoder = wordEncoder;
 		this.phonewordSyntaxChecker = phonewordSyntaxChecker;
 		dictionary = new HashMap<>();
+	}
+
+	public static DefaultPhoneWordDictionary getInstance() {
+		WordEncoder wordEncoder = new PhoneWordEncoder();
+		SyntaxChecker phonewordSyntaxChecker = new PhonewordSyntaxChecker();
+		DefaultPhoneWordDictionary instance = new DefaultPhoneWordDictionary(wordEncoder, phonewordSyntaxChecker);
+		return instance;
 	}
 
 	/**
@@ -186,13 +199,13 @@ public class DefaultPhoneWordDictionary implements PhoneWordDictionary {
 					}
 
 					if (rightDash) {
-						String temp = word.substring(0, dashIndex+1) + "-" + word.substring(dashIndex + 1);
+						String temp = word.substring(0, dashIndex + 1) + "-" + word.substring(dashIndex + 1);
 						word = temp;
 					} else {
 						String temp = word.substring(0, dashIndex) + "-" + word.substring(dashIndex);
 						word = temp;
 					}
-					 
+
 					rightDash = !rightDash;
 				}
 
@@ -338,7 +351,7 @@ public class DefaultPhoneWordDictionary implements PhoneWordDictionary {
 			final int end = i + wordLength - 1;
 			if (dictionary.containsKey(subStr)) {
 				// if the substring match any word in the dictionary
-				List<String> words = dictionary.get(subStr);
+				// List<String> words = dictionary.get(subStr);
 				/*
 				 * add all the dictionary words of the corresponding encoded into the returned
 				 * result
@@ -363,5 +376,18 @@ public class DefaultPhoneWordDictionary implements PhoneWordDictionary {
 
 	public int getShortestWordLength() {
 		return this.shortestWordLength;
+	}
+
+	@Override
+	public void importFromFile(File f) throws IOException {
+		if (!f.exists()) {
+			String errMsg = String.format("Error: failed to load the dictionary file - [%s] doesn't exist",
+					f.getAbsoluteFile());
+			throw new FileNotFoundException(errMsg);
+		}
+
+		try (Stream<String> lines = Files.lines(Paths.get(f.getAbsoluteFile().toURI()))) {
+			lines.forEach(this::addNewWord);
+		}
 	}
 }

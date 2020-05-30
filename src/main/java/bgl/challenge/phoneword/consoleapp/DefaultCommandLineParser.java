@@ -7,6 +7,14 @@ public class DefaultCommandLineParser implements CommandLineParser {
 	public static final String INPUT_FILE_INDICATOR = "-f";
 	public static final String DICTIONARY_FILE_INDICATOR = "-d";
 
+	/**
+	 * @return an instance of DefaultCommandLineParser
+	 */
+	public static DefaultCommandLineParser getInstance() {
+		DefaultCommandLineParser instance = new DefaultCommandLineParser();
+		return instance;
+	}
+
 	@Override
 	public CommandLineInfo parse(String[] commandLineArgs) {
 		String inputFileName = extractInputFileName(commandLineArgs);

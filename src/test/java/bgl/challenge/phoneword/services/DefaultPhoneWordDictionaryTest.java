@@ -1,19 +1,21 @@
 package bgl.challenge.phoneword.services;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
+import java.io.File;
+import java.io.FileNotFoundException;
+import java.net.URL;
+import java.nio.file.Files;
+import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.stream.Stream;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import bgl.challenge.phoneword.models.SubString;
-import bgl.challenge.phoneword.services.DefaultPhoneWordDictionary;
-import bgl.challenge.phoneword.services.PhoneWordEncoder;
-import bgl.challenge.phoneword.services.PhonewordSyntaxChecker;
-import bgl.challenge.phoneword.services.SyntaxChecker;
-import bgl.challenge.phoneword.services.WordEncoder;
 
 public class DefaultPhoneWordDictionaryTest {
 
@@ -213,6 +215,7 @@ public class DefaultPhoneWordDictionaryTest {
 		// then
 		int expectedNoOfPossibleWords = 1;
 		assertThat(possibleWords.size()).isEqualTo(expectedNoOfPossibleWords);
+		assertThat(possibleWords.contains(expectedPossibleWord)).isTrue();
 	}
 
 	@Test
@@ -534,5 +537,63 @@ public class DefaultPhoneWordDictionaryTest {
 
 		// Then
 		assertThat(actualResult).isEqualTo(expectedResult);
+	}
+
+	@Test
+	void testImportFromFile_GivenNotExistFile_ThenThrowException() throws Exception {
+		// When
+		assertThrows(FileNotFoundException.class, () -> dictionary.importFromFile(new File("nonExistFile")));
+	}
+
+	@Test
+	void testImportFromFile_GivenExistFile_ThenImportAllWords_1() throws Exception {
+		// Given
+		String dictionaryFile = "dictionary_test_1.txt";
+		URL url = this.getClass().getResource("/" + dictionaryFile);
+		File f = new File(url.getFile());
+		assertThat(f.exists()).isTrue();
+
+		// When
+		dictionary.importFromFile(f);
+
+		// Then
+		WordEncoder wordEncoder = new PhoneWordEncoder();
+		/*
+		 * assert that the dictionary contains all the encoded value of the words in
+		 * text file
+		 */
+		try (Stream<String> stream = Files.lines(Paths.get(url.getFile()))) {
+			stream.forEach(line -> {
+				String word = line;
+				String encoded = wordEncoder.encode(word) + "";
+				assertThat(dictionary.contains(encoded)).overridingErrorMessage("Word [%s] not added", word).isTrue();
+			});
+		}
+	}
+	
+	@Test
+	void testImportFromFile_GivenExistFile_ThenImportAllWords_2() throws Exception {
+		// Given
+		String dictionaryFile = "dictionary_test_2.txt";
+		URL url = this.getClass().getResource("/" + dictionaryFile);
+		File f = new File(url.getFile());
+		assertThat(f.exists()).isTrue();
+
+		// When
+		dictionary.importFromFile(f);
+
+		// Then
+		WordEncoder wordEncoder = new PhoneWordEncoder();
+		/*
+		 * assert that the dictionary contains all the encoded value of the words in
+		 * text file
+		 */
+		try (Stream<String> stream = Files.lines(Paths.get(url.getFile()))) {
+			stream.forEach(line -> {
+				String word = line;
+				String encoded = wordEncoder.encode(word) + "";
+				assertThat(dictionary.contains(encoded)).overridingErrorMessage("Word [%s] not added", word).isTrue();
+			});
+		}
 	}
 }
