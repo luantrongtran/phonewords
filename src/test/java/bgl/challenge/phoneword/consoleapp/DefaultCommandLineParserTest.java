@@ -1,7 +1,7 @@
 package bgl.challenge.phoneword.consoleapp;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.junit.Assert.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.doThrow;
 
@@ -9,8 +9,6 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 
-import bgl.challenge.phoneword.consoleapp.CommandLineInfo;
-import bgl.challenge.phoneword.consoleapp.DefaultCommandLineParser;
 import bgl.challenge.phoneword.exception.ArgumentMissingException;
 
 public class DefaultCommandLineParserTest {
