@@ -20,15 +20,15 @@ import java.util.stream.Stream;
 import bgl.challenge.phoneword.exception.UnknownCharacterException;
 import bgl.challenge.phoneword.models.Pattern;
 import bgl.challenge.phoneword.models.SubString;
+import bgl.challenge.phoneword.utils.CollectionUtils;
 
 public class DefaultPhoneWordDictionary implements PhoneWordDictionary {
 
-	/**
-	 * For encoding a word.
-	 */
 	WordEncoder wordEncoder;
 
 	SyntaxChecker phonewordSyntaxChecker;
+
+	PhonewordFormatter phonewordFormatter;
 
 	/**
 	 * Key is the encoded number, value is the corresponding words in dictionary
@@ -40,21 +40,24 @@ public class DefaultPhoneWordDictionary implements PhoneWordDictionary {
 	 */
 	int shortestWordLength = 0;
 
-	public DefaultPhoneWordDictionary(WordEncoder wordEncoder, SyntaxChecker phonewordSyntaxChecker) {
+	public DefaultPhoneWordDictionary(WordEncoder wordEncoder, SyntaxChecker phonewordSyntaxChecker,
+			PhonewordFormatter phonewordFormatter) {
 		this.wordEncoder = wordEncoder;
 		this.phonewordSyntaxChecker = phonewordSyntaxChecker;
+		this.phonewordFormatter = phonewordFormatter;
 		dictionary = new HashMap<>();
 	}
 
 	/**
 	 * Factory pattern
-	 * 
 	 * @return
 	 */
 	public static DefaultPhoneWordDictionary getInstance() {
 		WordEncoder wordEncoder = new PhoneWordEncoder();
 		SyntaxChecker phonewordSyntaxChecker = new PhonewordSyntaxChecker();
-		DefaultPhoneWordDictionary instance = new DefaultPhoneWordDictionary(wordEncoder, phonewordSyntaxChecker);
+		PhonewordFormatter phonewordFormatter = new DefaultPhonewordFormatter();
+		DefaultPhoneWordDictionary instance = new DefaultPhoneWordDictionary(wordEncoder, phonewordSyntaxChecker,
+				phonewordFormatter);
 		return instance;
 	}
 
@@ -62,6 +65,8 @@ public class DefaultPhoneWordDictionary implements PhoneWordDictionary {
 	 * Add a new word into the dictionary
 	 * 
 	 * @param word
+	 * @return true if the given word was successfully encoded and added into the
+	 *         dictionary
 	 */
 	public boolean addNewWord(String word) {
 		// Not accept null or empty string
@@ -74,28 +79,37 @@ public class DefaultPhoneWordDictionary implements PhoneWordDictionary {
 		}
 
 		try {
-			// convert to upper case
+			/*
+			 * Adding the word into the dictionary
+			 */
 			word = word.toUpperCase();
-			String encoded = wordEncoder.encode(word) + "";
-			if (!dictionary.containsKey(encoded)) {
+			String correspondingNumber = encodesWord(word);
+			if (!containsNumber(correspondingNumber)) {
 				List<String> words = new ArrayList<>();
 				words.add(word);
-				dictionary.put(encoded, words);
+				dictionary.put(correspondingNumber, words);
 			} else {
-				List<String> words = dictionary.get(encoded);
+				// If duplicated number, add it into the existing bucket
+				List<String> words = dictionary.get(correspondingNumber);
 				words.add(word);
 			}
 
+			/*
+			 * Monitoring and updating the shortest word length
+			 */
 			if (this.getShortestWordLength() == 0) {
 				// if it is the first word
-				this.setShortestWordLength(word.length());
+				setShortestWordLength(word.length());
 			} else if (word.length() < this.shortestWordLength) {
 				// if the new word's length is shorter
 				setShortestWordLength(word.length());
 			}
 		} catch (UnknownCharacterException ex) {
-			String warnMsg = String.format("Warning - Cannot add word [%s] into the library - ", word);
-			warnMsg += ex.getMessage();
+			/*
+			 * If the word contains characters which cannot be encoded
+			 */
+			String warnMsg = String.format("Warning - Cannot add word [%s] into the library - %s", word,
+					ex.getMessage());
 			System.out.println(warnMsg);
 			return false;
 		}
@@ -106,10 +120,10 @@ public class DefaultPhoneWordDictionary implements PhoneWordDictionary {
 	 * Checking if a number is in the dictionary
 	 * 
 	 * @param encodedNumber
-	 *            this is the encoded number not the word
+	 *            this is the encoded/phone number not the word
 	 * @return
 	 */
-	public boolean contains(String encodedNumber) {
+	public boolean containsNumber(String encodedNumber) {
 		if (dictionary == null) {
 			return false;
 		}
@@ -123,11 +137,11 @@ public class DefaultPhoneWordDictionary implements PhoneWordDictionary {
 	public List<String> findPhonewords(String phoneNumber) {
 		List<SubString> subStrings = findAllPossibleSubStrings(phoneNumber);
 
-		List<Pattern> patterns = findAllValidPatterns(subStrings);
+		List<Pattern> patterns = findAllValidPatterns(phoneNumber, subStrings);
 
 		List<String> possibleWords = patterns.stream().map(pattern -> {
 			// for each pattern construct possible words
-			List<String> possibleWordsPerPattern = constructPossibleWordsPerPattern(new String(phoneNumber), pattern);
+			List<String> possibleWordsPerPattern = constructPhonewordsPerPattern(new String(phoneNumber), pattern);
 			return possibleWordsPerPattern;
 		}).reduce(new ArrayList<>(), (partial, lstWords) -> {
 			// add all possible words per pattern into a single list
@@ -141,89 +155,46 @@ public class DefaultPhoneWordDictionary implements PhoneWordDictionary {
 	/**
 	 * Construct all possible words
 	 * 
-	 * @param originalEncodedString
+	 * @param originalPhoneNumber
 	 * @param subStrings
 	 * @return
 	 */
-	List<String> constructPossibleWordsPerPattern(String originalEncodedString, Pattern pattern) {
-		List<String> possibleWords = new ArrayList<>();
+	List<String> constructPhonewordsPerPattern(String originalPhoneNumber, Pattern pattern) {
+		/*
+		 * Create a list to save possible words.
+		 */
+		final List<String> possibleWordsOfTheGivenPattern = calculateNumberOfPossibleWords(pattern);
 
-		// calculate the number of possible words
-		int noOfPossibleWords = pattern.stream().map(subString -> {
-			String encodedString = subString.getValue();
-			List<String> dictionaryWords = dictionary.get(encodedString);
-			return dictionaryWords.size();
-		}).reduce(1, (total, noOfWordsPerEncoding) -> {
-			total *= noOfWordsPerEncoding;
-			return total;
-		});
-
-		// Create a list containing possible word and
-		final List<String> possibleWordsOfCurrentGroup = new ArrayList<>(noOfPossibleWords);
-		for (int i = 0; i < noOfPossibleWords; i++) {
-			// initialize all the value to be the originalEncodedString
-			possibleWordsOfCurrentGroup.add(new String(originalEncodedString));
-		}
-
+		/*
+		 * Composing possible words by replacing dictionary words with the substrings of
+		 * of the given Pattern
+		 */
 		pattern.stream().forEach(subString -> {
 			String encodedString = subString.getValue();
 			List<String> dictionaryWords = dictionary.get(encodedString);
-			for (int i = 0; i < possibleWordsOfCurrentGroup.size();) {
+			for (int i = 0; i < possibleWordsOfTheGivenPattern.size();) {
 				for (int j = 0; j < dictionaryWords.size(); j++, i++) {
 					String correspondingWord = dictionaryWords.get(j);
-					String newStr = this.replaceSubString(possibleWordsOfCurrentGroup.get(i), subString,
+					String newStr = this.replaceSubString(possibleWordsOfTheGivenPattern.get(i), subString,
 							correspondingWord);
-					possibleWordsOfCurrentGroup.set(i, newStr);
+					possibleWordsOfTheGivenPattern.set(i, newStr);
 				}
 			}
 		});
 
 		/*
-		 * Format the word to meet requirements - e.g. dashes between words; or no 2
-		 * consecutive digites
+		 * Process the possible words found in previous step
 		 */
-		possibleWordsOfCurrentGroup.stream().filter(phonewordSyntaxChecker::isValid).forEach(word -> {
-			Set<Integer> dashIndexes = new TreeSet<>(new Comparator<Integer>() {
-				@Override
-				public int compare(Integer o1, Integer o2) {
-					return -o1.compareTo(o2);
-				}
-			});
+		List<String> phonewords = possibleWordsOfTheGivenPattern.stream()
+				// filter invalid words
+				.filter(this::isValidPhoneword)
+				// format valid phonewords - e.g. adding dashes between words
+				.map(word -> {
+					String formattedWord = formatPhoneword(word, pattern);
+					return formattedWord;
+				}).collect(Collectors.toList());
 
-			pattern.stream().forEach(subString -> {
-				dashIndexes.add(subString.getStart());
-				dashIndexes.add(subString.getEnd());
-			});
-
-			Iterator<Integer> iter = dashIndexes.iterator();
-			boolean rightDash = true;
-			while (iter.hasNext()) {
-				int dashIndex = iter.next();
-				if (dashIndex == word.length() - 1) {
-					rightDash = !rightDash;
-					continue;
-				} else if (dashIndex == 0) {
-					rightDash = !rightDash;
-					continue;
-				}
-
-				if (rightDash) {
-					String temp = word.substring(0, dashIndex + 1) + "-" + word.substring(dashIndex + 1);
-					word = temp;
-				} else {
-					String temp = word.substring(0, dashIndex) + "-" + word.substring(dashIndex);
-					word = temp;
-				}
-
-				rightDash = !rightDash;
-			}
-
-			// The word may contain 2 consecutive dashes
-			word = word.replace("--", "-");
-			possibleWords.add(word);
-		});
-
-		return possibleWords;
+		return phonewords;
 	}
 
 	/**
@@ -237,14 +208,14 @@ public class DefaultPhoneWordDictionary implements PhoneWordDictionary {
 	 * @param subStrings
 	 * @return
 	 */
-	List<Pattern> findAllValidPatterns(List<SubString> subStrings) {
+	List<Pattern> findAllValidPatterns(String originalPhoneNumber, List<SubString> subStrings) {
 		final List<Pattern> patterns = new ArrayList<>();
 
 		/**
 		 * Patterns which contains only 1 substring
 		 */
 		subStrings.forEach(subString -> {
-			Pattern p = new Pattern(Arrays.asList(subString));
+			Pattern p = new Pattern(originalPhoneNumber, Arrays.asList(subString));
 			patterns.add(p);
 		});
 
@@ -269,7 +240,7 @@ public class DefaultPhoneWordDictionary implements PhoneWordDictionary {
 					}
 
 					if (groupOfSubStrings.size() == constNoOfSubStrings) {
-						Pattern p = new Pattern(groupOfSubStrings);
+						Pattern p = new Pattern(originalPhoneNumber, groupOfSubStrings);
 						patterns.add(p);
 					}
 				}
@@ -394,6 +365,26 @@ public class DefaultPhoneWordDictionary implements PhoneWordDictionary {
 	}
 
 	/**
+	 * Encode a word
+	 * 
+	 * @param word
+	 * @return
+	 */
+	String encodesWord(String word) {
+		String encodedNumber = wordEncoder.encode(word) + "";
+		return encodedNumber.toUpperCase();
+	}
+
+	/**
+	 * @param phoneword
+	 * @return
+	 */
+	boolean isValidPhoneword(String phoneword) {
+		boolean result = phonewordSyntaxChecker.isValid(phoneword);
+		return result;
+	}
+
+	/**
 	 * Import all words in a text file into the dictionary
 	 */
 	@Override
@@ -409,6 +400,67 @@ public class DefaultPhoneWordDictionary implements PhoneWordDictionary {
 		}
 	}
 
+	/**
+	 * Given a pattern -> calculate the number of possible words can be generated
+	 * from the dictionary
+	 * 
+	 * @param pattern
+	 * @return a List which has the length is the number of possible words; also
+	 *         each element is the original phone number.
+	 */
+	List<String> calculateNumberOfPossibleWords(Pattern pattern) {
+		/*
+		 * calculate the number of possible words
+		 */
+		int noOfPossibleWords = pattern.stream().map(subString -> {
+			String encodedString = subString.getValue();
+			List<String> dictionaryWords = dictionary.get(encodedString);
+			return dictionaryWords.size();
+		}).reduce(1, (total, noOfWordsPerEncoding) -> {
+			total *= noOfWordsPerEncoding;
+			return total;
+		});
+
+		/*
+		 * Create a list has the length which is the number of possible words; and each
+		 * element is the original phone number
+		 */
+		final List<String> possibleWordsOfTheGivenPattern = new ArrayList<>(noOfPossibleWords);
+		for (int i = 0; i < noOfPossibleWords; i++) {
+			// and initialize all the value to be the originalEncodedString
+			possibleWordsOfTheGivenPattern.add(new String(pattern.getOriginalPhoneNumber()));
+		}
+
+		return possibleWordsOfTheGivenPattern;
+	}
+
+	/**
+	 * Format a phoneword - for example, adding dashes between words.
+	 * 
+	 * @param word
+	 *            the word need formatting
+	 * @param pattern
+	 *            the pattern from which the word was generated
+	 * @return a formatted phone words
+	 * 
+	 *         <p>
+	 *         For example:
+	 *         </p>
+	 *         </p>
+	 *         - Given a pattern [{222},{333}] and the phoneword is AAADDD
+	 *         </p>
+	 *         <p>
+	 *         - The formatted word is AAA-DDD
+	 *         </p>
+	 */
+	String formatPhoneword(String word, Pattern pattern) {
+		String formattedWord = phonewordFormatter.format(word, pattern);
+		return formattedWord;
+	}
+
+	/*
+	 * Getter - Setter
+	 */
 	void setShortestWordLength(int length) {
 		this.shortestWordLength = length;
 	}

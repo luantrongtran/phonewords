@@ -29,14 +29,16 @@ import java.util.stream.Stream;
  *
  */
 public class Pattern {
+	private String originalPhoneNumber;
 	private List<SubString> subStrings;
 
 	public Pattern() {
 
 	}
 
-	public Pattern(List<SubString> subStrings) {
+	public Pattern(String originalPhoneNumber, List<SubString> subStrings) {
 		this.subStrings = subStrings;
+		this.originalPhoneNumber = originalPhoneNumber;
 	}
 
 	public Stream<SubString> stream() {
@@ -100,5 +102,13 @@ public class Pattern {
 		boolean equal = this.subStrings.containsAll(other.getSubStrings());
 
 		return equal;
+	}
+
+	public String getOriginalPhoneNumber() {
+		return originalPhoneNumber;
+	}
+
+	public void setOriginalPhoneNumber(String originalPhoneNumber) {
+		this.originalPhoneNumber = originalPhoneNumber;
 	}
 }
