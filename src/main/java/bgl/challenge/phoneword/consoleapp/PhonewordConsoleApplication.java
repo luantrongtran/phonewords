@@ -22,22 +22,22 @@ public class PhonewordConsoleApplication implements PhonewordApplication {
 	@Override
 	public void run(String[] commandLineArgs) throws IOException {
 		/*
-		 *  Parse arguments
+		 * Parse arguments
 		 */
 		CommandLineInfo commandInfo = commandParser.parse(commandLineArgs);
 
 		/*
-		 *  Load dictionary file
+		 * Load dictionary file
 		 */
 		loadDictionaryFromFile(commandInfo.getDictionaryFileName());
 
 		/*
-		 *  Print out all possible words
+		 * Print out all possible phonewords
 		 */
 		/// Get all the numbers
 		List<String> lstNumbers = Files.readAllLines(Paths.get(commandInfo.getInputFileName()));
-		lstNumbers.parallelStream().forEach(number -> {
-			List<String> phonewords = phoneWordDictionary.findPhonewords(number);
+		lstNumbers.parallelStream().forEach(phoneNumber -> {
+			List<String> phonewords = phoneWordDictionary.findPhonewords(phoneNumber);
 			// print
 			phonewords.stream().forEach(System.out::println);
 		});

@@ -32,7 +32,7 @@ public class DefaultPhoneWordDictionaryTest {
 		wordEncoder = Mockito.spy(PhoneWordEncoder.class);
 		syntaxChecker = Mockito.spy(PhonewordSyntaxChecker.class);
 		phonewordFormatter = Mockito.spy(DefaultPhonewordFormatter.class);
-		dictionary = new DefaultPhoneWordDictionary(wordEncoder, syntaxChecker, phonewordFormatter);
+		dictionary = Mockito.spy(new DefaultPhoneWordDictionary(wordEncoder, syntaxChecker, phonewordFormatter));
 	}
 
 	@Test
@@ -140,15 +140,13 @@ public class DefaultPhoneWordDictionaryTest {
 	@Test
 	public void testFindAllValidPatterns_2SubStringsNotOveralling_ThenReturn1Group() {
 		// Given
+		dictionary.addNewWord("STAR");
+		dictionary.addNewWord("WARS");
+		
 		String originalEncodedString = "782792771";
-		SubString subString1 = new SubString(originalEncodedString, "7827", 0, 3);
-		SubString subString2 = new SubString(originalEncodedString, "9277", 4, 7);
-		List<SubString> subStrings = new ArrayList<>();
-		subStrings.add(subString1);
-		subStrings.add(subString2);
 
 		// When
-		List<Pattern> patterns = dictionary.findAllValidPatterns(originalEncodedString, subStrings);
+		List<Pattern> patterns = dictionary.findAllValidPatterns(originalEncodedString);
 
 		// Then
 		int actualNoOfPatterns = patterns.size();
@@ -159,20 +157,13 @@ public class DefaultPhoneWordDictionaryTest {
 	@Test
 	public void testFindAllValidPatterns_3SubStringsOverllaping_ThenReturn4Group() {
 		// Given
+		dictionary.addNewWord("AAA");
+		dictionary.addNewWord("DDD");
 		String originalEncodedString = "22223333";
-		SubString subString1 = new SubString(originalEncodedString, "222", 0, 2);
-		SubString subString2 = new SubString(originalEncodedString, "222", 1, 3);
-		SubString subString3 = new SubString(originalEncodedString, "333", 4, 6);
-		SubString subString4 = new SubString(originalEncodedString, "333", 5, 7);
-		List<SubString> subStrings = new ArrayList<>();
-		subStrings.add(subString1);
-		subStrings.add(subString2);
-		subStrings.add(subString3);
-		subStrings.add(subString4);
 		int expectedNoOfPatterns = 8;
 
 		// When
-		List<Pattern> patterns = dictionary.findAllValidPatterns(originalEncodedString, subStrings);
+		List<Pattern> patterns = dictionary.findAllValidPatterns(originalEncodedString);
 
 		// Then
 		int actualNoOfPatterns = patterns.size();
@@ -182,15 +173,12 @@ public class DefaultPhoneWordDictionaryTest {
 	@Test
 	public void testFindAllValidPatterns_2overlappingEncodings_2PossibleWords() {
 		// Given
+		dictionary.addNewWord("KITTY");
+		dictionary.addNewWord("KIT");
 		String originalEncodedString = "54889";
-		SubString subString1 = new SubString(originalEncodedString, "54889", 0, 4);
-		SubString subString2 = new SubString(originalEncodedString, "548", 0, 2);
-		List<SubString> subStrings = new ArrayList<>();
-		subStrings.add(subString1);
-		subStrings.add(subString2);
 
 		// When
-		List<Pattern> patterns = dictionary.findAllValidPatterns(originalEncodedString, subStrings);
+		List<Pattern> patterns = dictionary.findAllValidPatterns(originalEncodedString);
 
 		// Then
 		int expectedNoOfPattern = 2;
@@ -647,7 +635,7 @@ public class DefaultPhoneWordDictionaryTest {
 		subStrings.add(subString2);
 		Pattern pattern = new Pattern(originalPhoneNumber, subStrings);
 		String expectedFormatedWord = "AAA-DDD";
-		
+
 		doReturn(expectedFormatedWord).when(phonewordFormatter).format(word, pattern);
 
 		// When
@@ -656,7 +644,7 @@ public class DefaultPhoneWordDictionaryTest {
 		// Then
 		assertThat(actualFormated).isEqualTo(expectedFormatedWord);
 	}
-	
+
 	@Test
 	void testFormatPhoneword_2() throws Exception {
 		// Given
@@ -673,7 +661,7 @@ public class DefaultPhoneWordDictionaryTest {
 		String expectedFormatedWord = "AAA-DDD-EEE";
 
 		doReturn(expectedFormatedWord).when(phonewordFormatter).format(word, pattern);
-		
+
 		// When
 		String actualFormated = dictionary.formatPhoneword(word, pattern);
 

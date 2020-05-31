@@ -14,11 +14,10 @@ public class PhonewordConsoleApplicationTest {
 		String phoneNumbersFileName = "input.txt";
 		URL phoneNumbersUrl = this.getClass().getResource("/" + phoneNumbersFileName);
 
-		String[] commandLineArgs = { "-f", phoneNumbersUrl.getFile(), "-d", dictionaryUrl.getFile() };
+		String[] commandLineArgs = { "-input", phoneNumbersUrl.getFile(), "-dictionary", dictionaryUrl.getFile() };
 
 		PhonewordConsoleApplication app = new PhonewordConsoleApplication();
 
 		app.run(commandLineArgs);
 	}
-
 }

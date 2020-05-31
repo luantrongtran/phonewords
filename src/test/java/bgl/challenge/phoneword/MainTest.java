@@ -13,7 +13,7 @@ public class MainTest {
 		String phoneNumbersFileName = "input.txt";
 		URL phoneNumbersUrl = this.getClass().getResource("/" + phoneNumbersFileName);
 
-		String[] args = { "-f", phoneNumbersUrl.getFile(), "-d", dictionaryUrl.getFile() };
+		String[] args = { "-input", phoneNumbersUrl.getFile(), "-dictionary", dictionaryUrl.getFile() };
 		Main.main(args);
 	}
 }

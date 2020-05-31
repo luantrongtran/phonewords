@@ -74,6 +74,27 @@ public class Pattern {
 		result = prime * result + ((subStrings == null) ? 0 : subStrings.hashCode());
 		return result;
 	}
+	
+	public boolean isValid() {
+		boolean containsConflictedSubString = this.stream().map(subString -> {
+			boolean conflictEmerged = this.stream().map(otherSubString -> {
+				if (subString.equals(otherSubString)) {
+					// the same substring
+					return false;
+				}
+				return subString.conflictWith(otherSubString);
+			}).reduce(false, (conflictOccurredWithSubString, currentConflict) -> {
+				return conflictOccurredWithSubString | currentConflict;
+			});
+			return conflictEmerged;
+		}).reduce(false, (anyConflict, conf) -> {
+			return anyConflict | conf;
+		});
+		
+		boolean isValid = !containsConflictedSubString;
+		
+		return isValid;
+	}
 
 	/**
 	 * 2 patterns are duplicated/equal when their subStrings are the same regardless

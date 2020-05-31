@@ -7,20 +7,16 @@ import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Comparator;
 import java.util.HashMap;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
-import java.util.TreeSet;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import bgl.challenge.phoneword.exception.UnknownCharacterException;
 import bgl.challenge.phoneword.models.Pattern;
 import bgl.challenge.phoneword.models.SubString;
-import bgl.challenge.phoneword.utils.CollectionUtils;
+import bgl.challenge.phoneword.utils.StringUtils;
 
 public class DefaultPhoneWordDictionary implements PhoneWordDictionary {
 
@@ -50,6 +46,7 @@ public class DefaultPhoneWordDictionary implements PhoneWordDictionary {
 
 	/**
 	 * Factory pattern
+	 * 
 	 * @return
 	 */
 	public static DefaultPhoneWordDictionary getInstance() {
@@ -117,43 +114,31 @@ public class DefaultPhoneWordDictionary implements PhoneWordDictionary {
 	}
 
 	/**
-	 * Checking if a number is in the dictionary
-	 * 
-	 * @param encodedNumber
-	 *            this is the encoded/phone number not the word
-	 * @return
-	 */
-	public boolean containsNumber(String encodedNumber) {
-		if (dictionary == null) {
-			return false;
-		}
-		return dictionary.containsKey(encodedNumber);
-	}
-
-	/**
 	 * Find all possible phonewords of the given number
 	 */
 	@Override
 	public List<String> findPhonewords(String phoneNumber) {
-		List<SubString> subStrings = findAllPossibleSubStrings(phoneNumber);
+		final String formatedPhoneNumber = StringUtils.removeSpacesAndPunctuations(phoneNumber);
+		/*
+		 * First find all possible patterns
+		 */
+		List<Pattern> patterns = findAllValidPatterns(formatedPhoneNumber);
 
-		List<Pattern> patterns = findAllValidPatterns(phoneNumber, subStrings);
-
-		List<String> possibleWords = patterns.stream().map(pattern -> {
+		/*
+		 * find all phonewords based on the patterns and the words in the dictionary
+		 */
+		List<String> possibleWords = patterns.stream().flatMap(pattern -> {
 			// for each pattern construct possible words
-			List<String> possibleWordsPerPattern = constructPhonewordsPerPattern(new String(phoneNumber), pattern);
-			return possibleWordsPerPattern;
-		}).reduce(new ArrayList<>(), (partial, lstWords) -> {
-			// add all possible words per pattern into a single list
-			partial.addAll(lstWords);
-			return partial;
-		});
+			List<String> possibleWordsPerPattern = constructPhonewordsPerPattern(formatedPhoneNumber, pattern);
+			return possibleWordsPerPattern.stream();
+		}).collect(Collectors.toList());
 
 		return possibleWords;
 	}
 
 	/**
-	 * Construct all possible words
+	 * Construct all possible phonewords of the given pattern based on the words in
+	 * dictionary
 	 * 
 	 * @param originalPhoneNumber
 	 * @param subStrings
@@ -198,79 +183,28 @@ public class DefaultPhoneWordDictionary implements PhoneWordDictionary {
 	}
 
 	/**
-	 * Given a list of subStrings which are encoded strings, the method will group
-	 * subStrings which are not overlapped each other.
-	 * 
-	 * The main point of this method is it lists all valid groups of substrings (and
-	 * unnecessary strings which are not a concerned for now)
+	 * Find all valid patterns of the given phone number
 	 * 
 	 * @param originalEncoded
 	 * @param subStrings
 	 * @return
 	 */
-	List<Pattern> findAllValidPatterns(String originalPhoneNumber, List<SubString> subStrings) {
-		final List<Pattern> patterns = new ArrayList<>();
+	List<Pattern> findAllValidPatterns(String originalPhoneNumber) {
+		List<Pattern> patterns = new ArrayList<>();
 
-		/**
-		 * Patterns which contains only 1 substring
+		/*
+		 * Firstly, find all possible patterns of the given phone number
 		 */
-		subStrings.forEach(subString -> {
-			Pattern p = new Pattern(originalPhoneNumber, Arrays.asList(subString));
-			patterns.add(p);
-		});
-
-		/**
-		 * Patterns which contains > 1 substring
-		 */
-		for (int noOfSubStrings = 2; noOfSubStrings <= subStrings.size(); noOfSubStrings++) {
-			final int constNoOfSubStrings = noOfSubStrings;
-			for (int i = 0; i < subStrings.size(); i++) {
-				SubString subString = subStrings.get(i);
-				for (int j = i + 1; j < subStrings.size(); j++) {
-					List<SubString> groupOfSubStrings = new ArrayList<>();
-					groupOfSubStrings.add(subString);
-					for (int k = 0; (k < constNoOfSubStrings && (j + k) < subStrings.size()); k++) {
-						SubString nextSubString = subStrings.get(j + k);
-						if (groupOfSubStrings.size() == constNoOfSubStrings) {
-							break;
-						}
-						if (!subString.equals(nextSubString)) {
-							groupOfSubStrings.add(nextSubString);
-						}
-					}
-
-					if (groupOfSubStrings.size() == constNoOfSubStrings) {
-						Pattern p = new Pattern(originalPhoneNumber, groupOfSubStrings);
-						patterns.add(p);
-					}
-				}
-			}
-		}
+		patterns = findAllPossiblePatterns(originalPhoneNumber);
 
 		/*
 		 * Filter out patterns containing conflicting sub strings.
 		 */
-		List<Pattern> validPatterns = patterns.stream().filter(pattern -> {
-			boolean isValidPattern = !pattern.stream().map(subString -> {
-				boolean conflictEmerged = pattern.stream().map(otherSubString -> {
-					if (subString.equals(otherSubString)) {
-						// the same substring
-						return false;
-					}
-					return subString.conflictWith(otherSubString);
-				}).reduce(false, (conflictOccurredWithSubString, currentConflict) -> {
-					return conflictOccurredWithSubString | currentConflict;
-				});
-				return conflictEmerged;
-			}).reduce(false, (anyConflict, conf) -> {
-				return anyConflict | conf;
-			});
-			return isValidPattern;
-		}).collect(Collectors.toList());
+		List<Pattern> validPatterns = patterns.stream().filter(pattern -> pattern.isValid())
+				.collect(Collectors.toList());
 
 		/*
-		 * validPatterns may contain duplicated patterns which have same substrings but
-		 * different order.
+		 * remove duplicated patterns
 		 */
 		for (int i = 0; i < validPatterns.size() - 1; i++) {
 			Pattern pattern = validPatterns.get(i);
@@ -285,6 +219,64 @@ public class DefaultPhoneWordDictionary implements PhoneWordDictionary {
 		}
 
 		return validPatterns;
+	}
+
+	/**
+	 * Find all possible patterns of the given phone number
+	 * 
+	 * @param originalPhoneNumber
+	 * @param subStrings
+	 * @return
+	 */
+	List<Pattern> findAllPossiblePatterns(String originalPhoneNumber) {
+		final List<Pattern> allPossiblePatterns = new ArrayList<>();
+
+		/*
+		 * Find all the substrings within the given phone numbers which exist in the
+		 * dictionary
+		 */
+		List<SubString> subStrings = findAllPossibleSubStrings(originalPhoneNumber);
+
+		/*
+		 * Find patterns which contains only 1 substring
+		 */
+		subStrings.forEach(subString -> {
+			Pattern p = new Pattern(originalPhoneNumber, Arrays.asList(subString));
+			allPossiblePatterns.add(p);
+		});
+
+		/*
+		 * Find patterns which contains > 1 substring
+		 */
+		for (int noOfSubStrings = 2; noOfSubStrings <= subStrings.size(); noOfSubStrings++) {
+			// for each length
+			final int constNoOfSubStrings = noOfSubStrings;
+			for (int i = 0; i < subStrings.size(); i++) {
+				// for each substring in the pattern
+				SubString subStringMustBeInPattern = subStrings.get(i);
+				// find the pattern containing the substring
+				for (int j = i + 1; j < subStrings.size(); j++) {
+					List<SubString> groupOfSubStrings = new ArrayList<>();
+					groupOfSubStrings.add(subStringMustBeInPattern);
+					for (int k = 0; (k < constNoOfSubStrings && (j + k) < subStrings.size()); k++) {
+						SubString nextSubString = subStrings.get(j + k);
+						if (groupOfSubStrings.size() == constNoOfSubStrings) {
+							break;
+						}
+						if (!subStringMustBeInPattern.equals(nextSubString)) {
+							groupOfSubStrings.add(nextSubString);
+						}
+					}
+
+					if (groupOfSubStrings.size() == constNoOfSubStrings) {
+						Pattern p = new Pattern(originalPhoneNumber, groupOfSubStrings);
+						allPossiblePatterns.add(p);
+					}
+				}
+			}
+		}
+
+		return allPossiblePatterns;
 	}
 
 	/**
@@ -456,6 +448,20 @@ public class DefaultPhoneWordDictionary implements PhoneWordDictionary {
 	String formatPhoneword(String word, Pattern pattern) {
 		String formattedWord = phonewordFormatter.format(word, pattern);
 		return formattedWord;
+	}
+
+	/**
+	 * Checking if a number is in the dictionary
+	 * 
+	 * @param encodedNumber
+	 *            this is the encoded/phone number not the word
+	 * @return
+	 */
+	boolean containsNumber(String encodedNumber) {
+		if (dictionary == null) {
+			return false;
+		}
+		return dictionary.containsKey(encodedNumber);
 	}
 
 	/*

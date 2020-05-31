@@ -4,8 +4,8 @@ import bgl.challenge.phoneword.exception.ArgumentMissingException;
 
 public class DefaultCommandLineParser implements CommandLineParser {
 
-	public static final String INPUT_FILE_INDICATOR = "-f";
-	public static final String DICTIONARY_FILE_INDICATOR = "-d";
+	public static final String INPUT_FILE_INDICATOR = "-input";
+	public static final String DICTIONARY_FILE_INDICATOR = "-dictionary";
 
 	/**
 	 * @return an instance of DefaultCommandLineParser

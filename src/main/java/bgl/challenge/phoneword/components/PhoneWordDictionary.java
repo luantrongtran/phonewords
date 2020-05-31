@@ -6,6 +6,6 @@ import java.io.IOException;
 import java.util.List;
 
 public interface PhoneWordDictionary {
-	public List<String> findPhonewords(String encodedNumber);
+	public List<String> findPhonewords(String phoneNumber);
 	public void importFromFile(File f) throws FileNotFoundException, IOException;
 }
