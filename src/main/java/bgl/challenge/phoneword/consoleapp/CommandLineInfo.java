@@ -7,7 +7,7 @@ package bgl.challenge.phoneword.consoleapp;
  *
  */
 public class CommandLineInfo {
-
+	
 	public CommandLineInfo() {
 
 	}
@@ -26,6 +26,8 @@ public class CommandLineInfo {
 	 * The name of the file containing dictionary words.
 	 */
 	private String dictionaryFileName;
+	
+	private String outputFileName;
 
 	public String getInputFileName() {
 		return inputFileName;
@@ -72,6 +74,14 @@ public class CommandLineInfo {
 		} else if (!inputFileName.equals(other.inputFileName))
 			return false;
 		return true;
+	}
+
+	public String getOutputFileName() {
+		return outputFileName;
+	}
+
+	public void setOutputFileName(String outputFileName) {
+		this.outputFileName = outputFileName;
 	}
 	
 	

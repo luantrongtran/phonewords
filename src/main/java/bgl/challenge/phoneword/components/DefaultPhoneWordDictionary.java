@@ -382,14 +382,27 @@ public class DefaultPhoneWordDictionary implements PhoneWordDictionary {
 	@Override
 	public void importFromFile(File f) throws IOException {
 		if (!f.exists()) {
-			String errMsg = String.format("Error: failed to load the dictionary file - [%s] doesn't exist",
+			String errMsg = String.format("Error: failed to load the dictionary file - File not found - [%s] doesn't exist",
 					f.getAbsoluteFile());
 			throw new FileNotFoundException(errMsg);
 		}
 
+		/*
+		 * counting lines in dictionary files
+		 */
+		int noOfLines = 30;
+		try (Stream<String> lines = Files.lines(Paths.get(f.getAbsoluteFile().toURI()))) {
+			noOfLines = (int)lines.count();
+		}
+		
+		/*
+		 * initialize the hash map the same size as the number of lines.
+		 */
+		dictionary = new HashMap<>(noOfLines);
 		try (Stream<String> lines = Files.lines(Paths.get(f.getAbsoluteFile().toURI()))) {
 			lines.forEach(this::addNewWord);
 		}
+		
 	}
 
 	/**

@@ -124,3 +124,6 @@ hs_err_pid*
 .classpath
 .settings
 target/*
+
+#Custom
+output.txt

@@ -11,7 +11,7 @@ public class PhonewordConsoleApplicationTest {
 		String dictionaryFileName = "dictionary.txt";
 		URL dictionaryUrl = this.getClass().getResource("/" + dictionaryFileName);
 
-		String phoneNumbersFileName = "input.txt";
+		String phoneNumbersFileName = "input_1.txt";
 		URL phoneNumbersUrl = this.getClass().getResource("/" + phoneNumbersFileName);
 
 		String[] commandLineArgs = { "-input", phoneNumbersUrl.getFile(), "-dictionary", dictionaryUrl.getFile() };
