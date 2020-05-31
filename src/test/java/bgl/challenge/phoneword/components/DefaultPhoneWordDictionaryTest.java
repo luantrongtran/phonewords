@@ -1,4 +1,4 @@
-package bgl.challenge.phoneword.services;
+package bgl.challenge.phoneword.components;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertThrows;

@@ -6,8 +6,8 @@ import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.List;
 
-import bgl.challenge.phoneword.services.DefaultPhoneWordDictionary;
-import bgl.challenge.phoneword.services.PhoneWordDictionary;
+import bgl.challenge.phoneword.components.DefaultPhoneWordDictionary;
+import bgl.challenge.phoneword.components.PhoneWordDictionary;
 
 public class PhonewordConsoleApplication implements PhonewordApplication {
 

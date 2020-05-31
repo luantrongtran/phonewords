@@ -1,4 +1,4 @@
-package bgl.challenge.phoneword.services;
+package bgl.challenge.phoneword.components;
 
 import java.io.File;
 import java.io.FileNotFoundException;

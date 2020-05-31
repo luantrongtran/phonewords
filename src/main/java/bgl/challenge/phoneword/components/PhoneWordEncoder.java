@@ -1,4 +1,4 @@
-package bgl.challenge.phoneword.services;
+package bgl.challenge.phoneword.components;
 
 import java.util.HashMap;
 import java.util.Map;

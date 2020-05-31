@@ -1,4 +1,4 @@
-package bgl.challenge.phoneword.services;
+package bgl.challenge.phoneword.components;
 
 public class PhonewordSyntaxChecker implements SyntaxChecker {
 
