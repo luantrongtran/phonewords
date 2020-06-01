@@ -1,8 +1,10 @@
 package bgl.challenge.phoneword.components;
 
 import java.io.File;
+import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.io.InputStream;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.ArrayList;
@@ -10,6 +12,7 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Scanner;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -382,7 +385,8 @@ public class DefaultPhoneWordDictionary implements PhoneWordDictionary {
 	@Override
 	public void importFromFile(File f) throws IOException {
 		if (!f.exists()) {
-			String errMsg = String.format("Error: failed to load the dictionary file - File not found - [%s] doesn't exist",
+			String errMsg = String.format(
+					"Error: failed to load the dictionary file - File not found - [%s] doesn't exist",
 					f.getAbsoluteFile());
 			throw new FileNotFoundException(errMsg);
 		}
@@ -392,17 +396,36 @@ public class DefaultPhoneWordDictionary implements PhoneWordDictionary {
 		 */
 		int noOfLines = 30;
 		try (Stream<String> lines = Files.lines(Paths.get(f.getAbsoluteFile().toURI()))) {
-			noOfLines = (int)lines.count();
+			noOfLines = (int) lines.count();
 		}
-		
+
 		/*
 		 * initialize the hash map the same size as the number of lines.
 		 */
+		String message = "Words added: %d\r";
 		dictionary = new HashMap<>(noOfLines);
-		try (Stream<String> lines = Files.lines(Paths.get(f.getAbsoluteFile().toURI()))) {
-			lines.forEach(this::addNewWord);
+		int noOfWordAdded = 0;
+
+		InputStream fis = null;
+		Scanner scanner = null;
+		try {
+			fis = new FileInputStream(f);
+			scanner = new Scanner(fis);
+			while (scanner.hasNextLine()) {
+				String word = scanner.nextLine();
+				addNewWord(word);
+				
+				noOfWordAdded++;
+				System.out.print(String.format(message, noOfWordAdded));
+			}
+		} finally {
+			if (fis != null) {
+				fis.close();
+			}
+			if (scanner != null) {
+				scanner.close();
+			}
 		}
-		
 	}
 
 	/**

@@ -36,6 +36,22 @@ public class DefaultPhoneWordDictionaryTest {
 	}
 
 	@Test
+	public void testFindPhoneWords_OneWordDictionary() {
+		// Given
+		dictionary.addNewWord("A");
+		String input = "23";
+		String expectedWord1 = "A-3";
+		int expectedNoOfWords = 1;
+
+		// When
+		List<String> phonewords = dictionary.findPhonewords(input);
+
+		// Then
+		assertThat(phonewords.size()).isEqualByComparingTo(expectedNoOfWords);
+		assertThat(phonewords.get(0)).isEqualTo(expectedWord1);
+	}
+	
+	@Test
 	public void testFindPhoneWords_4() {
 		// Given
 		dictionary.addNewWord("AAA");
@@ -294,6 +310,28 @@ public class DefaultPhoneWordDictionaryTest {
 		int expectedNoOfPossibleWords = 0;
 		int actualNoOfPossibleWords = possibleWords.size();
 		assertThat(actualNoOfPossibleWords).isEqualTo(expectedNoOfPossibleWords);
+	}
+	
+	@Test
+	public void testConstructPhonewordsPerPattern_1Encoding_1LetterWord() {
+		// Given
+		dictionary.addNewWord("A");
+		String originalEncodedNumber = "23";
+		int expectedNoOfWords = 1;
+		String expectedWord = "A-3";
+		
+		List<SubString> subStrings = new ArrayList<>();
+		SubString subString1 = new SubString(originalEncodedNumber, "2", 0, 0);
+		subStrings.add(subString1 );
+		Pattern pattern = new Pattern(originalEncodedNumber, subStrings );
+		
+		
+		// When
+		List<String> possibleWords = dictionary.constructPhonewordsPerPattern(originalEncodedNumber, pattern);
+		
+		// Then
+		assertThat(possibleWords.size()).isEqualTo(expectedNoOfWords);
+		assertThat(possibleWords.get(0)).isEqualTo(expectedWord);
 	}
 
 	@Test

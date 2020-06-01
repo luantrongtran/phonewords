@@ -34,17 +34,27 @@ public class PhonewordConsoleApplication implements PhonewordApplication {
 		/*
 		 * Load dictionary file
 		 */
+		System.out.println("Loading the dictionary file");
 		loadDictionaryFromFile(commandInfo.getDictionaryFileName());
 
 		/*
 		 * Find all possible phonewords
 		 */
+		System.out.println("Start looking up numbers");
 		List<String> allPhonewords = findAllPhonewords(commandInfo.getInputFileName());
 
 		/*
 		 * Writing to file
 		 */
-		writingToFile(allPhonewords, DEFAULT_OUTPUT_FILE_NAME);
+		System.out.println("Writing result to file");
+		String outputFileName = DEFAULT_OUTPUT_FILE_NAME;
+		writingToFile(allPhonewords, outputFileName);
+
+		/*
+		 * Print done message
+		 */
+		String doneMsg = String.format("Done - Please find phonewords in Ouput.txt", outputFileName);
+		System.out.println(doneMsg);
 	}
 
 	private void loadDictionaryFromFile(String dictionaryFileName) throws IOException {

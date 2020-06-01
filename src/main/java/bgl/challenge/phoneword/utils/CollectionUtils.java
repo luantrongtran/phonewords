@@ -1,6 +1,7 @@
 package bgl.challenge.phoneword.utils;
 
 import java.util.Comparator;
+import java.util.List;
 import java.util.Set;
 import java.util.TreeSet;
 
@@ -13,7 +14,17 @@ public class CollectionUtils {
 				return -o1.compareTo(o2);
 			}
 		});
-		
+
 		return dashIndexes;
+	}
+
+	public static void sortDescending(List<Integer> integers) {
+		integers.sort(new Comparator<Integer>() {
+			@Override
+			public int compare(Integer o1, Integer o2) {
+				// descending order
+				return -o1.compareTo(o2);
+			}
+		});
 	}
 }
