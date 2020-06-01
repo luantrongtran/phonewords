@@ -127,3 +127,4 @@ target/*
 
 #Custom
 output.txt
+!bin/*.jar
